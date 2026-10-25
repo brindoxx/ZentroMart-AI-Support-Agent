@@ -1,0 +1,29 @@
+# Local credentials
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# Python environments and generated files
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+build/
+dist/
+
+# Runtime artifacts, conversations, and local model downloads
+artifacts/
+logs/
+.cache/
+dataset/tools/tickets_created.csv
+
+# Editor and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
