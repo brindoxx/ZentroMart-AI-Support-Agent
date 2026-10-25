@@ -8,9 +8,10 @@ Transformers course.
 
 ## Current progress
 
-**Phases 1–3 complete: foundation, dataset inspection, and evaluation framework.**
-The Python package, configuration, dataset inspection, validation commands, and
-offline baseline evaluation runner are ready. Retrieval, model calls,
+**Phases 1–4 complete: foundation, inspection, evaluation, and knowledge ingestion.**
+The Python package, configuration, dataset inspection, validation commands,
+offline baseline evaluation runner, and section-based knowledge corpus are ready.
+Retrieval, model calls,
 order workflows, the web interface, and voice support are not implemented yet.
 
 The planned agent will answer from company policies, verify callers before
@@ -33,7 +34,7 @@ Copy-Item .env.example .env
 
 The repository is currently private; cloning requires authorized GitHub access.
 Activation of the virtual environment is optional: the commands above use its
-Python executable directly. Phases 1–3 need no API keys, GPU, or cloud services.
+Python executable directly. Phases 1–4 need no API keys, GPU, or cloud services.
 
 ## Inspect and validate the dataset
 
@@ -63,6 +64,20 @@ checks require manual review, and an evaluation exit code of zero is not a
 quality pass. See the [Phase 3 learning guide](docs/phase-03-evaluating-the-agent.md)
 for metric definitions, session handling, and limitations.
 
+## Prepare the knowledge base
+
+```powershell
+.\.venv\Scripts\python.exe -m zentromart ingest
+.\.venv\Scripts\python.exe -m zentromart ingest --section RET-2
+```
+
+Ingestion turns the 21 KB documents into 84 sections, retaining metadata,
+document-level context, tables, source line ranges, and historical policies.
+It reads only `kb/*.md` and writes UTF-8 JSONL plus a manifest in ignored
+`artifacts/knowledge/` run folders. It does not yet perform search or embeddings.
+See the [Phase 4 learning guide](docs/phase-04-preparing-the-knowledge-base.md)
+for chunk examples and why preserving policy context matters.
+
 ## Configuration
 
 `src/zentromart/config.py` loads `.env` from the repository root. Environment
@@ -84,7 +99,7 @@ integrations. Never commit `.env` or real credentials.
 ```text
 dataset/                 Supplied synthetic dataset and documentation
 src/zentromart/          Python package and central configuration
-tests/                   Configuration, data, and evaluation regression tests
+tests/                   Configuration, data, evaluation, and ingestion tests
 docs/                    Phase-by-phase learning notes
 evals/                   Evaluation usage and adapter guidance
 report/                  Final report workspace
@@ -101,9 +116,10 @@ verification, and evaluation evidence IDs. All customer records are synthetic.
 
 1. Completed: inspect and validate the data and table relationships.
 2. Completed: establish the baseline evaluation runner before building retrieval.
-3. Next, Phase 4: parse documents into sections; Phases 5–9 add retrieval and grounded replies.
-4. Phases 10–15: conversation state, verified tools, calculations, and interface.
-5. Phases 16–21: voice, evaluation, deployment, documentation, and release.
+3. Completed: parse knowledge documents into sections with metadata and source context.
+4. Next, Phase 5: add keyword retrieval; Phases 6–9 add semantic search and grounded replies.
+5. Phases 10–15: conversation state, verified tools, calculations, and interface.
+6. Phases 16–21: voice, evaluation, deployment, documentation, and release.
 
 Keep service credentials, generated conversation records, and ticket files out
 of this repository and the report. `.gitignore` excludes local credentials,
