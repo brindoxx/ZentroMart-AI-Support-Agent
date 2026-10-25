@@ -9,8 +9,9 @@ Transformers course.
 
 ## Current progress
 
-**Phase 1: project foundation.** The Python package, configuration, environment
-template, dataset layout, and setup checks are ready. Retrieval, model calls,
+**Phases 1–2 complete: project foundation and dataset inspection.** The Python
+package, configuration, environment template, dataset inventory, and offline
+validation commands are ready. Retrieval, model calls,
 order workflows, the web interface, and voice support are not implemented yet.
 
 The planned agent will answer from company policies, verify callers before
@@ -33,7 +34,21 @@ Copy-Item .env.example .env
 
 The repository is currently private; cloning requires authorized GitHub access.
 Activation of the virtual environment is optional: the commands above use its
-Python executable directly. Phase 1 needs no API keys, GPU, or cloud services.
+Python executable directly. Phases 1–2 need no API keys, GPU, or cloud services.
+
+## Inspect and validate the dataset
+
+```powershell
+.\.venv\Scripts\python.exe -m zentromart inspect
+.\.venv\Scripts\python.exe -m zentromart inspect --json
+.\.venv\Scripts\python.exe -m zentromart validate
+```
+
+Inspection shows schemas and aggregate counts without exposing customer rows or
+practice answers. Validation runs the supplied deeper checks, including order
+math, evidence references, and verification gates. Both commands return a
+nonzero exit code on failure. See the [Phase 2 learning guide](docs/phase-02-understanding-the-data.md)
+for table relationships, empty-cell interpretation, and examples.
 
 ## Configuration
 
@@ -57,6 +72,7 @@ integrations. Never commit `.env` or real credentials.
 dataset/                 Supplied synthetic dataset and documentation
 src/zentromart/          Python package and central configuration
 tests/                   Configuration boundary checks
+docs/                    Phase-by-phase learning notes
 evals/                   Evaluation workspace for Phase 3
 report/                  Final report workspace
 .env.example             Public configuration template
@@ -70,8 +86,8 @@ verification, and evaluation evidence IDs. All customer records are synthetic.
 
 ## Next phases
 
-1. Phase 2: inspect and validate the data and table relationships.
-2. Phase 3: establish an evaluation runner before building retrieval.
+1. Completed: inspect and validate the data and table relationships.
+2. Next, Phase 3: establish an evaluation runner before building retrieval.
 3. Phases 4–9: parse documents, retrieve evidence, and generate grounded replies.
 4. Phases 10–15: conversation state, verified tools, calculations, and interface.
 5. Phases 16–21: voice, evaluation, deployment, documentation, and release.
