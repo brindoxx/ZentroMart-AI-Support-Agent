@@ -15,10 +15,22 @@ def main() -> None:
     inspection = commands.add_parser("inspect", help="Show dataset schema and counts")
     inspection.add_argument("--json", action="store_true", help="Print the inspection as JSON")
     commands.add_parser("validate", help="Run the supplied offline dataset validator")
+    evaluation = commands.add_parser("evaluate", help="Run offline practice evaluation")
+    evaluation.add_argument("--suite", choices=("all", "questions", "conversations"), default="all")
+    evaluation.add_argument("--agent", choices=("baseline",), default="baseline")
+    evaluation.add_argument("--asr", action="store_true", help="Use ASR-style text for questions")
+    evaluation.add_argument("--top-k", type=int, default=5)
     args = parser.parse_args()
     try:
         settings = load_settings()
         settings.validate_dataset_layout()
+        if args.command == "evaluate":
+            from .evaluation.runner import format_summary, run_evaluation, save_report
+            report = run_evaluation(settings, suite=args.suite, asr=args.asr, top_k=args.top_k)
+            path = save_report(report, settings.artifacts_dir)
+            print(format_summary(report))
+            print(f"Redacted report: {path}")
+            raise SystemExit(1 if report["summary"]["error_rows"] else 0)
         if args.command == "inspect":
             report = inspect_dataset(settings.dataset_dir)
             print(json.dumps(report, indent=2) if args.json else format_inspection(report))
@@ -39,7 +51,7 @@ def main() -> None:
     print("ZentroMart project setup is ready.")
     print(f"Dataset: {settings.dataset_dir}")
     print(f"Reference date: {settings.reference_date}")
-    print("Use 'python -m zentromart inspect' or 'python -m zentromart validate'.")
+    print("Use 'python -m zentromart inspect', 'validate', or 'evaluate'.")
 
 
 if __name__ == "__main__":
