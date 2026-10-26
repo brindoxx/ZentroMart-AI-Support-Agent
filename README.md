@@ -8,11 +8,10 @@ Transformers course.
 
 ## Current progress
 
-**Phases 1–4 complete: foundation, inspection, evaluation, and knowledge ingestion.**
-The Python package, configuration, dataset inspection, validation commands,
-offline baseline evaluation runner, and section-based knowledge corpus are ready.
-Retrieval, model calls,
-order workflows, the web interface, and voice support are not implemented yet.
+**Phases 1–5 complete: foundation, inspection, evaluation, ingestion, and BM25 search.**
+The project now ranks policy sections and public product facts, with separate
+retrieval evaluation. Semantic search, model calls, order workflows, the web
+interface, and voice support are planned for later phases.
 
 The planned agent will answer from company policies, verify callers before
 showing order details, create handover tickets, and support English, Hindi,
@@ -34,7 +33,7 @@ Copy-Item .env.example .env
 
 The repository is currently private; cloning requires authorized GitHub access.
 Activation of the virtual environment is optional: the commands above use its
-Python executable directly. Phases 1–4 need no API keys, GPU, or cloud services.
+Python executable directly. Phases 1–5 need no API keys, GPU, or cloud services.
 
 ## Inspect and validate the dataset
 
@@ -78,6 +77,23 @@ It reads only `kb/*.md` and writes UTF-8 JSONL plus a manifest in ignored
 See the [Phase 4 learning guide](docs/phase-04-preparing-the-knowledge-base.md)
 for chunk examples and why preserving policy context matters.
 
+## Search policies and public products
+
+```powershell
+.\.venv\Scripts\python.exe -m zentromart search "reverse pickup fee" --top-k 3
+.\.venv\Scripts\python.exe -m zentromart search "ELE-0012" --json
+.\.venv\Scripts\python.exe -m zentromart evaluate-retrieval
+.\.venv\Scripts\python.exe -m zentromart evaluate-retrieval --asr
+```
+
+BM25 searches 84 policy/support sections and 70 public catalog rows. JSON results
+include the passage, metadata, and matching-term contributions. Private customer
+and order records are excluded. The initial Hit@5 is 80.9% across 47 practice
+questions with gold evidence, falling to 70.2% for their ASR-style text; these
+are retrieval results, not answer accuracy. Five no-gold questions are excluded
+from these relevance metrics. See the [Phase 5 learning guide](docs/phase-05-keyword-search.md)
+for scoring, measured recall, examples, and limitations.
+
 ## Configuration
 
 `src/zentromart/config.py` loads `.env` from the repository root. Environment
@@ -99,7 +115,7 @@ integrations. Never commit `.env` or real credentials.
 ```text
 dataset/                 Supplied synthetic dataset and documentation
 src/zentromart/          Python package and central configuration
-tests/                   Configuration, data, evaluation, and ingestion tests
+tests/                   Configuration, data, evaluation, ingestion, and retrieval tests
 docs/                    Phase-by-phase learning notes
 evals/                   Evaluation usage and adapter guidance
 report/                  Final report workspace
@@ -117,9 +133,10 @@ verification, and evaluation evidence IDs. All customer records are synthetic.
 1. Completed: inspect and validate the data and table relationships.
 2. Completed: establish the baseline evaluation runner before building retrieval.
 3. Completed: parse knowledge documents into sections with metadata and source context.
-4. Next, Phase 5: add keyword retrieval; Phases 6–9 add semantic search and grounded replies.
-5. Phases 10–15: conversation state, verified tools, calculations, and interface.
-6. Phases 16–21: voice, evaluation, deployment, documentation, and release.
+4. Completed: add keyword retrieval with BM25 and measure its development baseline.
+5. Next, Phase 6: add semantic/hybrid retrieval; Phases 7–9 add policy handling and grounded replies.
+6. Phases 10–15: conversation state, verified tools, calculations, and interface.
+7. Phases 16–21: voice, evaluation, deployment, documentation, and release.
 
 Keep service credentials, generated conversation records, and ticket files out
 of this repository and the report. `.gitignore` excludes local credentials,

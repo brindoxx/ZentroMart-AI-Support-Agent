@@ -30,3 +30,21 @@ retrieval index or use the practice reference answers as agent context.
 
 Read `docs/phase-03-evaluating-the-agent.md` for metric definitions, limitations,
 session behavior, and the next implementation steps.
+
+## Retrieval-only baseline (Phase 5)
+
+```powershell
+.\.venv\Scripts\python.exe -m zentromart evaluate-retrieval --top-k 5
+.\.venv\Scripts\python.exe -m zentromart evaluate-retrieval --top-k 5 --asr
+```
+
+This evaluates BM25 over policy sections and public product rows, without
+generating replies or claiming decision/tool accuracy. All 52 single questions
+run; 47 with gold evidence contribute to Hit@K, Recall@K, and truncated MRR.
+Reports include per-language summaries, ranked public IDs, settings, and corpus/
+practice fingerprints. They exclude raw questions and reference answers.
+
+The initial original-text Hit@5 is 38/47 (80.9%); ASR-text Hit@5 is 33/47 (70.2%).
+Read `docs/phase-05-keyword-search.md` for full metrics and the fixed baseline's
+limitations. Generated reports use the same ignored `artifacts/evals/` area,
+with `run_kind: retrieval_evaluation` to distinguish them from agent runs.

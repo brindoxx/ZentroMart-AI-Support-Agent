@@ -63,21 +63,31 @@ def tool_calls_match(expected: tuple[ToolCall, ...], actual: tuple[ToolCall, ...
     )
 
 
+def score_retrieval(gold_evidence: tuple[str, ...], retrieved_evidence: tuple[str, ...], top_k: int) -> dict:
+    """Shared retrieval metrics; no answer or decision is fabricated for search."""
+    if top_k < 1:
+        raise ValueError("top-k must be positive")
+    gold = set(gold_evidence)
+    retrieved = list(dict.fromkeys(retrieved_evidence))[:top_k]
+    rank = next((i for i, identifier in enumerate(retrieved, 1) if identifier in gold), None)
+    return {
+        "retrieval_hit_at_k": bool(rank) if gold else None,
+        "retrieval_recall_at_k": len(gold & set(retrieved)) / len(gold) if gold else None,
+        "reciprocal_rank_at_k": 1 / rank if rank else (0.0 if gold else None),
+    }
+
+
 def score_response(target: Target, response: AgentResponse, valid_evidence: set[str], top_k: int) -> dict:
     gold, cited = set(target.evidence), set(response.evidence)
-    retrieved = list(dict.fromkeys(response.retrieved_evidence))[:top_k]
     required = [matches_fact(response.reply, fact) for fact in target.required_facts]
     forbidden = [matches_fact(response.reply, claim) for claim in target.forbidden_claims]
-    rank = next((i for i, identifier in enumerate(retrieved, 1) if identifier in gold), None)
     return {
         "decision_correct": response.decision in target.decisions,
         "declared_language_match": response.language == target.language,
         "citation_precision": len(gold & cited) / len(cited) if cited else None,
         "citation_recall": len(gold & cited) / len(gold) if gold else None,
         "invalid_citation_count": len(cited - valid_evidence),
-        "retrieval_hit_at_k": bool(rank) if gold else None,
-        "retrieval_recall_at_k": len(gold & set(retrieved)) / len(gold) if gold else None,
-        "reciprocal_rank_at_k": 1 / rank if rank else (0.0 if gold else None),
+        **score_retrieval(target.evidence, response.retrieved_evidence, top_k),
         "required_fact_lexical_coverage": sum(required) / len(required) if required else None,
         "required_fact_count": len(required),
         "required_fact_lexical_matches": sum(required),

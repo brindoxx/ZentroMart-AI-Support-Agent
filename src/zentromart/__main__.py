@@ -17,6 +17,13 @@ def main() -> None:
     commands.add_parser("validate", help="Run the supplied offline dataset validator")
     ingestion = commands.add_parser("ingest", help="Parse kb/*.md into searchable section chunks")
     ingestion.add_argument("--section", help="Preview one exact section ID, for example RET-2")
+    search = commands.add_parser("search", help="Rank public policy/catalog evidence using BM25")
+    search.add_argument("query")
+    search.add_argument("--top-k", type=int, default=5)
+    search.add_argument("--json", action="store_true", help="Show full passages, metadata, and score contributions")
+    retrieval_eval = commands.add_parser("evaluate-retrieval", help="Score BM25 evidence retrieval on questions")
+    retrieval_eval.add_argument("--top-k", type=int, default=5)
+    retrieval_eval.add_argument("--asr", action="store_true")
     evaluation = commands.add_parser("evaluate", help="Run offline practice evaluation")
     evaluation.add_argument("--suite", choices=("all", "questions", "conversations"), default="all")
     evaluation.add_argument("--agent", choices=("baseline",), default="baseline")
@@ -26,6 +33,35 @@ def main() -> None:
     try:
         settings = load_settings()
         settings.validate_dataset_layout()
+        if args.command in {"search", "evaluate-retrieval"}:
+            from .retrieval import BM25Index, load_search_documents
+            index = BM25Index(load_search_documents(settings.dataset_dir))
+            if args.command == "search":
+                hits = index.search(args.query, args.top_k)
+                if args.json:
+                    print(json.dumps({"index": index.configuration(),
+                                      "results": [hit.to_dict() for hit in hits]}, indent=2))
+                else:
+                    lines = []
+                    for rank, hit in enumerate(hits, 1):
+                        metadata = hit.document.metadata
+                        lines.append(f"{rank}. [{hit.document.evidence_id}] {hit.score:.4f} - {hit.document.title}")
+                        lines.append(f"   {hit.document.source}; type={metadata['doc_type']}; "
+                                     f"status={metadata.get('status', 'not applicable')}; "
+                                     f"matches={', '.join(hit.term_scores)}")
+                    lines.append("BM25 relevance scores are not confidence or policy authority." if hits else
+                                 "No matching terms found. Try different wording.")
+                    output = "\n".join(lines)
+                    encoding = sys.stdout.encoding or "utf-8"
+                    print(output.encode(encoding, errors="backslashreplace").decode(encoding))
+                return
+            from .evaluation.retrieval import evaluate_retrieval, format_retrieval_summary
+            from .evaluation.runner import save_report
+            report = evaluate_retrieval(settings, index, top_k=args.top_k, asr=args.asr)
+            path = save_report(report, settings.artifacts_dir)
+            print(format_retrieval_summary(report))
+            print(f"Redacted report: {path}")
+            return
         if args.command == "ingest":
             from .ingestion import build_corpus, save_corpus, summarize_corpus
             chunks = build_corpus(settings.dataset_dir)
@@ -68,7 +104,7 @@ def main() -> None:
     print("ZentroMart project setup is ready.")
     print(f"Dataset: {settings.dataset_dir}")
     print(f"Reference date: {settings.reference_date}")
-    print("Use 'python -m zentromart inspect', 'validate', 'ingest', or 'evaluate'.")
+    print("Use 'python -m zentromart --help' to see dataset, search, and evaluation commands.")
 
 
 if __name__ == "__main__":
