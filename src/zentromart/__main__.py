@@ -1,4 +1,4 @@
-"""Offline setup, inspection, ingestion, and evaluation commands."""
+"""Dataset, retrieval, policy, evaluation, and explicit model-check commands."""
 
 import argparse
 from datetime import date
@@ -26,6 +26,8 @@ def main() -> None:
     inspection = commands.add_parser("inspect", help="Show dataset schema and counts")
     inspection.add_argument("--json", action="store_true", help="Print the inspection as JSON")
     commands.add_parser("validate", help="Run the supplied offline dataset validator")
+    model_check = commands.add_parser("llm-check", help="Inspect model configuration without a network request")
+    model_check.add_argument("--live", action="store_true", help="Send a small synthetic request to the configured model")
     ingestion = commands.add_parser("ingest", help="Parse kb/*.md into searchable section chunks")
     ingestion.add_argument("--section", help="Preview one exact section ID, for example RET-2")
     search = commands.add_parser("search", help="Rank public policy/catalog evidence")
@@ -59,6 +61,16 @@ def main() -> None:
     evaluation.add_argument("--top-k", type=int, default=5)
     args = parser.parse_args()
     try:
+        if args.command == "llm-check":
+            from .config import load_llm_settings
+            from .llm import ModelError, check_model
+            try:
+                report = check_model(load_llm_settings(), live=args.live)
+            except ModelError as exc:
+                print(json.dumps({"status": "failed", "code": exc.code, "message": str(exc)}, indent=2))
+                raise SystemExit(1) from None
+            print(json.dumps(report, indent=2))
+            return
         settings = load_settings()
         settings.validate_dataset_layout()
         if args.command in {"search", "evaluate-retrieval", "compare-retrieval", "policy-search"}:

@@ -8,12 +8,12 @@ Transformers course.
 
 ## Current progress
 
-**Phases 1–7 complete: foundation, evaluation, retrieval, and policy evidence handling.**
+**Phases 1–8 complete: retrieval, policy handling, and a verified Gemini connection.**
 The project supports BM25, local multilingual semantic search, and hybrid rank
 fusion over policy sections and public product facts, with separate retrieval
 evaluation. A deterministic layer now prioritizes policy authority and applies
 scoped historical, festive, and marketplace exceptions to explicit scenario facts.
-Model-generated replies, order workflows, the web interface, and
+Grounded customer replies, order workflows, the web interface, and
 voice support are planned for later phases.
 
 The planned agent will answer from company policies, verify callers before
@@ -151,8 +151,28 @@ root, so running commands from another folder does not change the dataset path.
 | `DATASET_REFERENCE_DATE` | `2026-10-20` | Frozen date used by dataset policy calculations |
 
 A different reference date is rejected to prevent incorrect policy calculations.
-The model and Gnani variables in `.env.example` are placeholders for future
-integrations. Never commit `.env` or real credentials.
+The Gemini adapter reads the model variables separately, only when requested.
+Gnani remains reserved for the voice phases. Never commit `.env` or real credentials.
+
+## Check the Gemini connection (Phase 8)
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-llm.txt
+.\.venv\Scripts\python.exe -m zentromart llm-check
+.\.venv\Scripts\python.exe -m zentromart llm-check --live
+```
+
+Set `LLM_PROVIDER=gemini`, `LLM_MODEL=gemini-3.5-flash-lite`, and `LLM_API_KEY`
+in the ignored local `.env` file. The first check only inspects configuration;
+`--live` sends a small synthetic connection test to Google and consumes API quota.
+No dataset or customer records are sent by this check. Model access and free-tier
+quota depend on the Google project; a configuration check is not proof of access.
+
+The adapter validates structured JSON, bounds input/output and request attempts,
+disables automatic tool calling, and sanitizes provider failures. It does not
+change the requested model or switch to a paid fallback. The evaluator still
+uses its offline baseline: a model connection is not yet a grounded support agent.
+Read the [Phase 8 learning guide](docs/phase-08-gemini-connection.md).
 
 ## Repository layout
 
@@ -180,9 +200,10 @@ verification, and evaluation evidence IDs. All customer records are synthetic.
 4. Completed: add keyword retrieval with BM25 and measure its development baseline.
 5. Completed: semantic/hybrid retrieval and a real-model comparison on both input variants.
 6. Completed: policy precedence, scoped applicability, and evidence provenance.
-7. Next, Phases 8–9: model integration and grounded replies.
-8. Phases 10–15: conversation state, verified tools, calculations, and interface.
-9. Phases 16–21: voice, evaluation, deployment, documentation, and release.
+7. Completed: Gemini model connection with a successful synthetic live access check.
+8. Next, Phase 9: connect policy evidence to grounded replies.
+9. Phases 10–15: conversation state, verified tools, calculations, and interface.
+10. Phases 16–21: voice, evaluation, deployment, documentation, and release.
 
 Keep service credentials, generated conversation records, and ticket files out
 of this repository and the report. `.gitignore` excludes local credentials,

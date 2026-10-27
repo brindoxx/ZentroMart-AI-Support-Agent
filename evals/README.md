@@ -88,3 +88,13 @@ or model downloads. They are not a new chatbot-accuracy or retrieval benchmark.
 `policy-search` can attach explicit topic anchors and policy dependencies, so its
 bundle may exceed top-K; these attached passages must not count as raw retrieval
 hits. Existing Phase 5/6 metrics continue to measure the unmodified retrievers.
+
+## Model transport checks (Phase 8)
+
+`tests/test_llm.py` uses fake Gemini clients to exercise configuration, schema
+validation, bounded retries, blocked/incomplete outputs, safe failures, and the
+no-network default check. Tests do not consume API quota or load local keys.
+`python -m zentromart llm-check --live` is a separate synthetic integration check,
+not a customer-answer benchmark. The CLI evaluator remains the offline baseline;
+there is no `--agent gemini` yet. Do not interpret transport success as policy
+accuracy or an end-to-end agent score.
