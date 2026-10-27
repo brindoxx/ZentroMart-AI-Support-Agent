@@ -8,14 +8,15 @@ Transformers course.
 
 ## Current progress
 
-**Phases 1–10 complete: guarded policy replies and in-memory conversation state.**
+**Phases 1–11 complete: grounded replies, conversation state, and verified mock support.**
 The project supports BM25, local multilingual semantic search, and hybrid rank
 fusion over policy sections and public product facts, with separate retrieval
 evaluation. A deterministic layer now prioritizes policy authority and applies
 scoped historical, festive, and marketplace exceptions to explicit scenario facts.
 Gemini now generates public-policy replies with source-ID checks, safe
-clarification fallbacks, and an opt-in memory-backed conversation mode. Verified order workflows,
-the web interface, and voice support are planned for later phases.
+clarification fallbacks, and an opt-in memory-backed conversation mode. Verified
+mock order lookup, deterministic calculations, and opt-in local handover tickets
+are now available. The web interface and voice support are planned next.
 
 The planned agent will answer from company policies, verify callers before
 showing order details, create handover tickets, and support English, Hindi,
@@ -236,19 +237,45 @@ The supplied dataset is kept together so its relative imports and offline mock
 tools continue to work. Its own README describes policy precedence, identity
 verification, and evaluation evidence IDs. All customer records are synthetic.
 
-## Next phases
+## Verified support workflows (combined Phase 11)
 
-1. Completed: inspect and validate the data and table relationships.
-2. Completed: establish the baseline evaluation runner before building retrieval.
-3. Completed: parse knowledge documents into sections with metadata and source context.
-4. Completed: add keyword retrieval with BM25 and measure its development baseline.
-5. Completed: semantic/hybrid retrieval and a real-model comparison on both input variants.
-6. Completed: policy precedence, scoped applicability, and evidence provenance.
-7. Completed: Gemini model connection with a successful synthetic live access check.
-8. Completed: stateless grounded replies, citation checks, and bounded live evaluation.
-9. Completed: bounded conversation memory, conservative slot handling, and session isolation.
-10. Next, Phase 11: identity-checked mock order tools; Phases 12–15 add handovers, calculations, and interface.
-11. Phases 16–21: voice, evaluation, deployment, documentation, and release.
+```powershell
+.\.venv\Scripts\python.exe -m zentromart chat --support --live
+```
+
+Ask about an order, supply its eight-digit ID, then provide one requested
+four-digit phone suffix or six-digit delivery pincode. Use only synthetic dataset
+examples. Two failed submissions lock that order for the session, even after
+`/reset`. This educational mock verification is **not production authentication**.
+
+After verification, `/items` lists item lines, `/item 1 1` selects line 1 and one
+unit, and `/reason change_of_mind` explicitly classifies a proposed return.
+`/policy QUESTION` clears private context and returns to general policy help.
+`/quit` exits. Private facts and proofs are never sent to Gemini; its connection
+is available only for public-policy questions. Private-workflow replies are
+currently English.
+
+Ticket writing is disabled by default. Add `--write-tickets` to allow **local mock**
+tickets under ignored `artifacts/tickets/`; this does not contact a real support
+team. The assistant cannot cancel an order, approve a claim, or pay a refund.
+Calculations are conditional estimates against the frozen 2026-10-20 snapshot.
+See the [Phase 11 learning guide](docs/phase-11-verified-support-workflows.md).
+
+## Remaining roadmap
+
+The former 11 remaining phases are consolidated into five larger phases, leaving
+more time to test and improve each part:
+
+| Phase | Scope | Status |
+| --- | --- | --- |
+| 11 (old 11–13) | Verified order workflows, handover tickets, deterministic calculations | Complete |
+| 12 (old 14–15) | Multilingual replies and interactive web interface | Next |
+| 13 (old 16–17) | Gnani speech input/output and voice workflow | Planned |
+| 14 (old 18–19) | Expanded evaluation, failure analysis, and improvements | Planned |
+| 15 (old 20–21) | Deployment, report, demonstration, and release preparation | Planned |
+
+Phases 1–10 remain documented separately in `docs/`. The repository stays private
+until the user chooses to publish it.
 
 Keep service credentials, generated conversation records, and ticket files out
 of this repository and the report. `.gitignore` excludes local credentials,

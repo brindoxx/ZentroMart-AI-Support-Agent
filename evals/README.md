@@ -153,3 +153,35 @@ Phase 10's live verification used a synthetic six-turn sequence with only three
 generation calls; it was not a scored run of the supplied conversation suite.
 Its results and remaining parser/answer-quality limitations are documented in
 `docs/phase-10-conversation-state.md`.
+
+## Verified mock workflows (combined Phase 11)
+
+```powershell
+.\.venv\Scripts\python.exe -m zentromart evaluate --agent support --live --suite conversations --max-cases 6
+```
+
+The support adapter creates fresh workflow state for each session. It executes
+verification, private rendering, arithmetic, and handover routing in application
+code; the model receives public-policy questions only. `--live` acknowledges that
+public fallback may use Gemini, even when a particular run makes no model calls.
+Use a positive case cap; stop-on-error protections still apply.
+
+Ticket writes are disabled by default. Only add `--write-tickets` deliberately:
+it appends local mock tickets to ignored `artifacts/tickets/tickets_created.csv`.
+It does not contact a real human team. A correct escalation decision may still
+miss the expected ticket tool call when writes are disabled; report both metrics.
+
+Tool correctness uses executor-recorded calls, not model assertions. Arguments
+are inspected transiently but omitted from saved reports, along with verification
+proofs, raw messages, private order payloads, and replies. Configuration records
+policy/calendar hashes and the write flag. Do not print or serialize raw traces.
+
+The final six-turn development-prefix run completed without errors: decisions
+6/6, expected tool calls 5/6 (ticket writes disabled), declared language 0/6,
+and required-fact lexical coverage 60% over five applicable rows. Private replies
+are currently English; multilingual rendering remains Phase 12. Gold citation
+precision was 25%, recall 38.9%; these require improvement/review, not a claim of
+fully correct answers. Private flows perform no retrieval, so their zero raw
+retrieval hits are not a regression in BM25. This repeatedly inspected prefix is
+development evidence, not a held-out benchmark. See the Phase 11 learning guide
+for the routing fix, tests, and limitations.
