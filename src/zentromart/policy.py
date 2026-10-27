@@ -240,6 +240,7 @@ class PolicyEngine:
             "schema_version": 1, "rule_version": "zentromart-policy-v1",
             "reference_date": self.reference_date.isoformat(), "topic": context.topic,
             "index": self.index.configuration(),
+            "retrieved_evidence": [hit.document.evidence_id for hit in raw],
             "resolution": "review_required" if review else ("needs_context" if missing else "evidence_prepared"),
             "required_context": missing,
             "applicability": {"historical_electronics_window": historical,

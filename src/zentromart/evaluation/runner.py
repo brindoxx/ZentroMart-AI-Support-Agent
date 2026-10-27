@@ -1,6 +1,8 @@
 """Run independent agent sessions and save aggregate, redacted evaluation reports."""
 
 from collections.abc import Callable
+from collections import Counter
+from dataclasses import asdict
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -13,6 +15,7 @@ from uuid import uuid4
 from zentromart.config import Settings
 from zentromart.contracts import Agent, AgentRequest, AgentResponse, Message
 from zentromart.dataset import read_table
+from zentromart.grounding import GroundingTrace
 from .cases import load_cases
 from .scoring import score_response
 
@@ -52,6 +55,10 @@ def summarize(rows: list[dict]) -> dict:
             "max": max((row["latency_ms"] for row in rows), default=None),
         },
         "metrics": metrics,
+        "grounding_outcomes": dict(Counter(
+            row["grounding"]["outcome"] + (":" + row["grounding"]["reason"] if row["grounding"]["reason"] else "")
+            for row in rows if "grounding" in row
+        )),
     }
 
 
@@ -80,6 +87,7 @@ def run_evaluation(
     factory: Callable[[], Agent] = ClarificationBaseline,
     agent_name: str = "clarification_baseline",
     suite: str = "all", asr: bool = False, top_k: int = 5,
+    max_cases: int | None = None, stop_on_error: bool = False,
 ) -> dict:
     """No gold labels cross the respond() boundary. State resets between sessions.
 
@@ -91,19 +99,29 @@ def run_evaluation(
         raise ValueError("Choose a valid suite and a positive top-k")
     if asr and suite == "conversations":
         raise ValueError("ASR text is available only for single questions")
+    if max_cases is not None and (type(max_cases) is not int or max_cases < 1):
+        raise ValueError("max-cases must be a positive integer")
     suites = ("questions", "conversations") if suite == "all" else (suite,)
+    plans = {selected: load_cases(settings.dataset_dir, selected, asr=asr and selected == "questions")
+             for selected in suites}
+    available_rows = sum(len(cases) for sessions in plans.values() for cases in sessions)
     valid_evidence = evidence_inventory(settings.dataset_dir)
     results = []
     session_count = 0
+    stopped_early = False
     for selected in suites:
-        sessions = load_cases(settings.dataset_dir, selected, asr=asr and selected == "questions")
+        sessions = plans[selected]
         for cases in sessions:
+            if stopped_early or (max_cases is not None and len(results) >= max_cases):
+                break
             session_count += 1
             # A fresh instance prevents verified orders or other mutable state
             # leaking from one customer's conversation to another.
             agent = factory()
             history: tuple[Message, ...] = ()
             for case in cases:
+                if max_cases is not None and len(results) >= max_cases:
+                    break
                 start = perf_counter()
                 row = {
                     "case_id": case.case_id, "suite": selected,
@@ -121,8 +139,14 @@ def run_evaluation(
                     row["error_type"] = type(exc).__name__
                     assistant_message = "[Agent response unavailable.]"
                 row["latency_ms"] = round((perf_counter() - start) * 1000, 3)
+                trace = getattr(agent, "last_trace", None)
+                if isinstance(trace, GroundingTrace):
+                    row["grounding"] = asdict(trace)
                 history += (Message("user", case.message), Message("assistant", assistant_message))
                 results.append(row)
+                if stop_on_error and row["error_type"] is not None:
+                    stopped_early = True
+                    break
     return {
         "schema_version": 1,
         "agent": agent_name,
@@ -132,6 +156,9 @@ def run_evaluation(
         "dataset_sha256": fingerprint(settings.dataset_dir),
         "top_k": top_k,
         "sessions": session_count,
+        "available_rows": available_rows, "max_cases": max_cases,
+        "planned_rows": min(available_rows, max_cases) if max_cases is not None else available_rows,
+        "stopped_early_on_error": stopped_early,
         "summary": summarize(results),
         "by_suite": {
             selected: summarize([row for row in results if row["suite"] == selected])
@@ -144,6 +171,7 @@ def run_evaluation(
             "Tool checks require executor-recorded traces; they do not prove action success or privacy.",
             "No automatic privacy-violation score or overall quality/pass score is provided.",
             "Failed calls are counted separately and excluded from metric means.",
+            "A max-cases run is a deterministic prefix sample, not a full-suite result.",
         ],
         "rows": results,
     }
@@ -170,6 +198,12 @@ def format_summary(report: dict) -> str:
         value = "N/A" if result["mean"] is None else f"{result['mean']:.3f}"
         lines.append(f"  {metric}: {value} (n={result['scored_rows']})")
     lines.append("Lexical checks and language declarations require manual review.")
+    if report.get("max_cases") is not None:
+        lines.append(f"Limited run: at most {report['max_cases']} cases, selected in dataset/session order.")
+    if summary.get("grounding_outcomes"):
+        lines.append(f"Grounding outcomes: {summary['grounding_outcomes']}")
+    if report.get("stopped_early_on_error"):
+        lines.append("Stopped on the first agent error; the remainder was not attempted.")
     if report["run_kind"] == "wiring_baseline":
         lines.append("This baseline only checks the evaluation plumbing; it is not a working support agent.")
     return "\n".join(lines)

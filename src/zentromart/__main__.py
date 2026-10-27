@@ -44,22 +44,43 @@ def main() -> None:
     policy_search.add_argument("--placed-on", type=scenario_date)
     policy_search.add_argument("--top-k", type=int, default=5)
     policy_search.add_argument("--json", action="store_true", help="Show the complete evidence bundle and provenance")
+    answer = commands.add_parser("answer", help="Generate a public-policy reply; requires explicit --live")
+    answer.add_argument("query")
+    answer.add_argument("--live", action="store_true", help="Allow sending this question and public evidence to Gemini")
+    answer.add_argument("--topic", choices=tuple(TOPIC_ANCHORS), default="general")
+    answer.add_argument("--category", choices=sorted(CATEGORIES))
+    answer.add_argument("--sku")
+    answer.add_argument("--delivered-on", type=scenario_date)
+    answer.add_argument("--placed-on", type=scenario_date)
+    answer.add_argument("--language", choices=("en", "hi", "hi-en"))
+    answer.add_argument("--top-k", type=int, default=5)
+    answer.add_argument("--json", action="store_true", help="Print reply, source IDs, and redacted trace")
     retrieval_eval = commands.add_parser("evaluate-retrieval", help="Score evidence retrieval on questions")
     retrieval_eval.add_argument("--top-k", type=int, default=5)
     retrieval_eval.add_argument("--asr", action="store_true")
     comparison = commands.add_parser("compare-retrieval", help="Compare BM25, semantic, and hybrid on text and ASR")
     comparison.add_argument("--top-k", type=int, default=5)
-    for command in (search, retrieval_eval, policy_search):
+    for command in (search, retrieval_eval, policy_search, answer):
         command.add_argument("--retriever", choices=("bm25", "semantic", "hybrid"), default="bm25")
-    for command in (search, retrieval_eval, comparison, policy_search):
+    for command in (search, retrieval_eval, comparison, policy_search, answer):
         command.add_argument("--offline", action="store_true", help="Use only previously downloaded model files")
         command.add_argument("--rebuild-embeddings", action="store_true", help="Recompute document embeddings")
     evaluation = commands.add_parser("evaluate", help="Run offline practice evaluation")
     evaluation.add_argument("--suite", choices=("all", "questions", "conversations"), default="all")
-    evaluation.add_argument("--agent", choices=("baseline",), default="baseline")
+    evaluation.add_argument("--agent", choices=("baseline", "gemini"), default="baseline")
+    evaluation.add_argument("--live", action="store_true", help="Allow Gemini calls when --agent gemini is selected")
+    evaluation.add_argument("--max-cases", type=int, help="Evaluate only a deterministic prefix of cases")
+    evaluation.add_argument("--retriever", choices=("bm25", "semantic", "hybrid"), default="bm25")
+    evaluation.add_argument("--offline", action="store_true", help="Keep only the embedding model offline; Gemini still uses the network")
     evaluation.add_argument("--asr", action="store_true", help="Use ASR-style text for questions")
     evaluation.add_argument("--top-k", type=int, default=5)
     args = parser.parse_args()
+    if args.command == "answer" and not args.live:
+        parser.error("answer requires --live: your question and public evidence will be sent to Gemini")
+    if args.command == "evaluate" and args.agent == "gemini" and not args.live:
+        parser.error("--agent gemini requires --live and consumes API quota")
+    if args.command == "evaluate" and args.agent == "baseline" and (args.live or args.retriever != "bm25" or args.offline):
+        parser.error("Live/retriever options require --agent gemini; baseline has no retriever or model")
     try:
         if args.command == "llm-check":
             from .config import load_llm_settings
@@ -73,7 +94,7 @@ def main() -> None:
             return
         settings = load_settings()
         settings.validate_dataset_layout()
-        if args.command in {"search", "evaluate-retrieval", "compare-retrieval", "policy-search"}:
+        if args.command in {"search", "evaluate-retrieval", "compare-retrieval", "policy-search", "answer"}:
             from .retrieval import build_indexes, load_search_documents
             if args.top_k < 1:
                 raise ValueError("top-k must be positive")
@@ -99,6 +120,25 @@ def main() -> None:
                 print(f"Comparison report: {path}")
                 return
             index = indexes[args.retriever]
+            if args.command == "answer":
+                from dataclasses import asdict
+                from .config import load_llm_settings
+                from .contracts import AgentRequest
+                from .grounding import GroundedAgent
+                from .llm import GeminiModel
+                from .policy import PolicyContext
+                agent = GroundedAgent(index, GeminiModel(load_llm_settings()), settings.reference_date,
+                                      context=PolicyContext(args.topic, args.category, args.sku,
+                                                            args.delivered_on, args.placed_on),
+                                      top_k=args.top_k, reply_language=args.language)
+                response = agent.respond(AgentRequest("cli-one-shot", args.query))
+                if args.json:
+                    print(json.dumps({**asdict(response), "grounding": asdict(agent.last_trace)}, indent=2))
+                else:
+                    output = f"{response.reply}\nDecision: {response.decision}; evidence: {', '.join(response.evidence) or 'none'}"
+                    encoding = sys.stdout.encoding or "utf-8"
+                    print(output.encode(encoding, errors="backslashreplace").decode(encoding))
+                return
             if args.command == "policy-search":
                 from .policy import PolicyContext, PolicyEngine
                 context = PolicyContext(topic=args.topic, category=args.category, sku=args.sku,
@@ -159,7 +199,32 @@ def main() -> None:
             return
         if args.command == "evaluate":
             from .evaluation.runner import format_summary, run_evaluation, save_report
-            report = run_evaluation(settings, suite=args.suite, asr=args.asr, top_k=args.top_k)
+            options = {"suite": args.suite, "asr": args.asr, "top_k": args.top_k, "max_cases": args.max_cases}
+            configuration = None
+            if args.agent == "gemini":
+                from .config import load_llm_settings
+                from .grounding import GroundedAgent
+                from .llm import GeminiModel, sdk_version
+                from .retrieval import build_indexes, load_search_documents
+                if args.max_cases is None or args.max_cases < 1 or not 1 <= args.top_k <= 20:
+                    raise ValueError("Gemini evaluation requires --max-cases > 0 and top-k from 1 to 20")
+                if args.asr and args.suite == "conversations":
+                    raise ValueError("ASR text is available only for single questions")
+                model_settings = load_llm_settings()
+                model = GeminiModel(model_settings)
+                index = build_indexes(load_search_documents(settings.dataset_dir), settings.artifacts_dir,
+                                      (args.retriever,), offline=args.offline)[args.retriever]
+                def factory():
+                    return GroundedAgent(index, model, settings.reference_date, top_k=args.top_k)
+                configuration = {**factory().configuration(), "provider": model_settings.provider,
+                                 "model": model_settings.model, "sdk_version": sdk_version(),
+                                 "timeout_seconds": model_settings.timeout_seconds,
+                                 "max_output_tokens": model_settings.max_output_tokens,
+                                 "retries": model_settings.retries}
+                options.update(factory=factory, agent_name="gemini_grounded", stop_on_error=True)
+            report = run_evaluation(settings, **options)
+            if configuration:
+                report["agent_configuration"] = configuration
             path = save_report(report, settings.artifacts_dir)
             print(format_summary(report))
             print(f"Redacted report: {path}")

@@ -8,8 +8,8 @@ Run the framework from the repository root:
 .\.venv\Scripts\python.exe -m zentromart evaluate --suite conversations
 ```
 
-The current CLI uses a deliberately unskilled clarification baseline to test the
-framework. It makes no model or tool calls. A poor score is expected and does not
+The default CLI uses a deliberately unskilled clarification baseline to test the
+framework. It makes no model or tool calls. A poor baseline score is expected and does not
 represent our future agent. `--asr` replaces single-question inputs with the
 provided ASR-style text; it does not run speech recognition. With the default
 `--suite all`, conversation inputs remain their original text.
@@ -17,7 +17,8 @@ provided ASR-style text; it does not run speech recognition. With the default
 Implementation lives in `src/zentromart/evaluation/`; shared agent inputs and
 outputs live in `src/zentromart/contracts.py`. Future Python adapters can pass a
 factory to `run_evaluation(settings, factory=YourAgent, agent_name="your-agent")`.
-The CLI currently accepts only `--agent baseline`.
+The CLI defaults to `--agent baseline`; the opt-in `--agent gemini` adapter is
+described below.
 
 Each run creates `artifacts/evals/<UTC-timestamp>-<unique-id>/report.json`. Reports
 include per-case scores, aggregate metrics with denominators, suite summaries,
@@ -95,6 +96,35 @@ hits. Existing Phase 5/6 metrics continue to measure the unmodified retrievers.
 validation, bounded retries, blocked/incomplete outputs, safe failures, and the
 no-network default check. Tests do not consume API quota or load local keys.
 `python -m zentromart llm-check --live` is a separate synthetic integration check,
-not a customer-answer benchmark. The CLI evaluator remains the offline baseline;
-there is no `--agent gemini` yet. Do not interpret transport success as policy
+not a customer-answer benchmark. Phase 8 left the evaluator on its offline
+baseline; Phase 9 adds the opt-in adapter below. Do not interpret transport success as policy
 accuracy or an end-to-end agent score.
+
+## Grounded Gemini adapter (Phase 9)
+
+```powershell
+.\.venv\Scripts\python.exe -m zentromart evaluate --agent gemini --live --suite questions --max-cases 6
+```
+
+Both `--live` and a positive `--max-cases` are required. Selection is a deterministic
+prefix in session/turn order, not a curated list of successes. A cap may stop
+mid-conversation. `planned_rows`, `available_rows`, the cap, attempted rows, and
+early-stop status are recorded. The adapter ignores history until Phase 10 and
+cannot use private tools, so conversation/tool metrics are not readiness claims.
+
+The first agent error stops this CLI run; failed rows stay in the report, and
+unattempted cases do not masquerade as completed ones. Deterministic citation or
+missing-context fallbacks are completed responses, with separate `grounding_outcomes`
+counters. Per-row traces contain only fixed outcomes/reasons and token counts.
+Provider errors have no raw payloads; their messages are not saved.
+
+Reports include a whitelisted `agent_configuration` with requested model, SDK,
+prompt version/hash, policy rule version, corpus/index settings, timeout, output
+budget, and retries. No key is included. Actual raw retrieval IDs remain separate
+from attached policy evidence, so anchors do not inflate retrieval metrics.
+
+An accepted citation means an ID belonged to the supplied bundle and matched
+the reply's bracketed references. It is not an entailment check. Likewise,
+gold-ID precision and lexical fact coverage are diagnostics requiring review,
+not a universal accuracy score. Initial six-case results and limitations are in
+`docs/phase-09-grounded-replies.md`.

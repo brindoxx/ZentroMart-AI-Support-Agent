@@ -8,13 +8,14 @@ Transformers course.
 
 ## Current progress
 
-**Phases 1–8 complete: retrieval, policy handling, and a verified Gemini connection.**
+**Phases 1–9 complete: retrieval, policy handling, and guarded Gemini policy replies.**
 The project supports BM25, local multilingual semantic search, and hybrid rank
 fusion over policy sections and public product facts, with separate retrieval
 evaluation. A deterministic layer now prioritizes policy authority and applies
 scoped historical, festive, and marketplace exceptions to explicit scenario facts.
-Grounded customer replies, order workflows, the web interface, and
-voice support are planned for later phases.
+Gemini now generates stateless public-policy replies with source-ID checks and
+safe clarification fallbacks. Verified order workflows, conversation state,
+the web interface, and voice support are planned for later phases.
 
 The planned agent will answer from company policies, verify callers before
 showing order details, create handover tickets, and support English, Hindi,
@@ -59,7 +60,7 @@ for table relationships, empty-cell interpretation, and examples.
 .\.venv\Scripts\python.exe -m zentromart evaluate --suite questions --asr
 ```
 
-The default runs 52 questions and 96 conversation turns. The baseline always asks
+The default offline baseline runs 52 questions and 96 conversation turns. It always asks
 for clarification; it tests the framework and is not a working support agent.
 Redacted reports are saved in ignored `artifacts/evals/` run folders. Lexical
 checks require manual review, and an evaluation exit code of zero is not a
@@ -174,6 +175,29 @@ change the requested model or switch to a paid fallback. The evaluator still
 uses its offline baseline: a model connection is not yet a grounded support agent.
 Read the [Phase 8 learning guide](docs/phase-08-gemini-connection.md).
 
+## Generate a grounded policy reply (Phase 9)
+
+```powershell
+.\.venv\Scripts\python.exe -m zentromart answer "Is pickup free for change-of-mind fashion returns?" --topic return_fee --live
+.\.venv\Scripts\python.exe -m zentromart answer "Electronics return window?" --topic return_window --category electronics --delivered-on 2026-07-31 --live --json
+.\.venv\Scripts\python.exe -m zentromart evaluate --agent gemini --live --suite questions --max-cases 6
+```
+
+`--live` explicitly allows sending the current question and selected public
+passages to Gemini. `--language en`, `hi`, or `hi-en` can set reply language.
+Typed scenario fields are not caller verification and are not automatically
+extracted from the question. Missing context, unavailable applicable policies,
+over-budget input, and invalid citations produce safe fallbacks; model/provider
+errors remain errors. No history, private order table, or tools enter generation.
+
+Gemini evaluation requires an explicit case cap and stops on the first agent
+error. Reports retain scores, outcome counters, model/prompt/index configuration,
+and token counts, but omit question/reply text and credentials. The six-case
+development sample is not a full benchmark or proof of semantic correctness.
+Read the [Phase 9 learning guide](docs/phase-09-grounded-replies.md) for measured
+results, citation limitations, and examples. `--offline` only keeps optional
+semantic embeddings offline; Gemini answering still needs the network.
+
 ## Repository layout
 
 ```text
@@ -201,8 +225,8 @@ verification, and evaluation evidence IDs. All customer records are synthetic.
 5. Completed: semantic/hybrid retrieval and a real-model comparison on both input variants.
 6. Completed: policy precedence, scoped applicability, and evidence provenance.
 7. Completed: Gemini model connection with a successful synthetic live access check.
-8. Next, Phase 9: connect policy evidence to grounded replies.
-9. Phases 10–15: conversation state, verified tools, calculations, and interface.
+8. Completed: stateless grounded replies, citation checks, and bounded live evaluation.
+9. Next, Phase 10: conversation state; Phases 11–15 add verified tools, calculations, and interface.
 10. Phases 16–21: voice, evaluation, deployment, documentation, and release.
 
 Keep service credentials, generated conversation records, and ticket files out
