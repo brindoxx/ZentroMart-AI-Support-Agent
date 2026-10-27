@@ -8,10 +8,11 @@ Transformers course.
 
 ## Current progress
 
-**Phases 1–5 complete: foundation, inspection, evaluation, ingestion, and BM25 search.**
-The project now ranks policy sections and public product facts, with separate
-retrieval evaluation. Semantic search, model calls, order workflows, the web
-interface, and voice support are planned for later phases.
+**Phases 1–6 complete: foundation, inspection, evaluation, ingestion, and hybrid retrieval.**
+The project supports BM25, local multilingual semantic search, and hybrid rank
+fusion over policy sections and public product facts, with separate retrieval
+evaluation. Model-generated replies, order workflows, the web interface, and
+voice support are planned for later phases.
 
 The planned agent will answer from company policies, verify callers before
 showing order details, create handover tickets, and support English, Hindi,
@@ -94,6 +95,29 @@ are retrieval results, not answer accuracy. Five no-gold questions are excluded
 from these relevance metrics. See the [Phase 5 learning guide](docs/phase-05-keyword-search.md)
 for scoring, measured recall, examples, and limitations.
 
+## Add semantic and hybrid search
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-semantic.txt
+.\.venv\Scripts\python.exe -m zentromart search "Nobody collected my return" --retriever semantic
+.\.venv\Scripts\python.exe -m zentromart search "reverse pickup fee" --retriever hybrid
+.\.venv\Scripts\python.exe -m zentromart compare-retrieval
+```
+
+The optional semantic extra runs pinned multilingual E5-small locally on the CPU.
+Its first use downloads the model; document embeddings are cached under ignored
+`artifacts/`. Add `--offline` after the initial download. `--rebuild-embeddings`
+recomputes document vectors if a cache is damaged. Query embeddings are not
+persisted. BM25 remains the default and needs none of these model dependencies.
+See the [Phase 6 learning guide](docs/phase-06-semantic-and-hybrid-search.md)
+for prefixes, cosine similarity, reciprocal rank fusion, caching, and comparison
+methodology.
+
+At top-K 5, original-question Hit@5 is 80.9% for BM25, 78.7% for semantic,
+and 83.0% for hybrid. For ASR-style text it is 70.2%, 83.0%, and 78.7%, respectively.
+These are development retrieval results across 47 gold-evidence questions,
+not chatbot accuracy. The full comparison and limitations are in the Phase 6 guide.
+
 ## Configuration
 
 `src/zentromart/config.py` loads `.env` from the repository root. Environment
@@ -134,9 +158,10 @@ verification, and evaluation evidence IDs. All customer records are synthetic.
 2. Completed: establish the baseline evaluation runner before building retrieval.
 3. Completed: parse knowledge documents into sections with metadata and source context.
 4. Completed: add keyword retrieval with BM25 and measure its development baseline.
-5. Next, Phase 6: add semantic/hybrid retrieval; Phases 7–9 add policy handling and grounded replies.
-6. Phases 10–15: conversation state, verified tools, calculations, and interface.
-7. Phases 16–21: voice, evaluation, deployment, documentation, and release.
+5. Completed: semantic/hybrid retrieval and a real-model comparison on both input variants.
+6. Next, Phases 7–9: policy precedence/applicability, model integration, and grounded replies.
+7. Phases 10–15: conversation state, verified tools, calculations, and interface.
+8. Phases 16–21: voice, evaluation, deployment, documentation, and release.
 
 Keep service credentials, generated conversation records, and ticket files out
 of this repository and the report. `.gitignore` excludes local credentials,

@@ -17,13 +17,20 @@ def main() -> None:
     commands.add_parser("validate", help="Run the supplied offline dataset validator")
     ingestion = commands.add_parser("ingest", help="Parse kb/*.md into searchable section chunks")
     ingestion.add_argument("--section", help="Preview one exact section ID, for example RET-2")
-    search = commands.add_parser("search", help="Rank public policy/catalog evidence using BM25")
+    search = commands.add_parser("search", help="Rank public policy/catalog evidence")
     search.add_argument("query")
     search.add_argument("--top-k", type=int, default=5)
     search.add_argument("--json", action="store_true", help="Show full passages, metadata, and score contributions")
-    retrieval_eval = commands.add_parser("evaluate-retrieval", help="Score BM25 evidence retrieval on questions")
+    retrieval_eval = commands.add_parser("evaluate-retrieval", help="Score evidence retrieval on questions")
     retrieval_eval.add_argument("--top-k", type=int, default=5)
     retrieval_eval.add_argument("--asr", action="store_true")
+    comparison = commands.add_parser("compare-retrieval", help="Compare BM25, semantic, and hybrid on text and ASR")
+    comparison.add_argument("--top-k", type=int, default=5)
+    for command in (search, retrieval_eval):
+        command.add_argument("--retriever", choices=("bm25", "semantic", "hybrid"), default="bm25")
+    for command in (search, retrieval_eval, comparison):
+        command.add_argument("--offline", action="store_true", help="Use only previously downloaded model files")
+        command.add_argument("--rebuild-embeddings", action="store_true", help="Recompute document embeddings")
     evaluation = commands.add_parser("evaluate", help="Run offline practice evaluation")
     evaluation.add_argument("--suite", choices=("all", "questions", "conversations"), default="all")
     evaluation.add_argument("--agent", choices=("baseline",), default="baseline")
@@ -33,9 +40,32 @@ def main() -> None:
     try:
         settings = load_settings()
         settings.validate_dataset_layout()
-        if args.command in {"search", "evaluate-retrieval"}:
-            from .retrieval import BM25Index, load_search_documents
-            index = BM25Index(load_search_documents(settings.dataset_dir))
+        if args.command in {"search", "evaluate-retrieval", "compare-retrieval"}:
+            from .retrieval import build_indexes, load_search_documents
+            if args.top_k < 1:
+                raise ValueError("top-k must be positive")
+            methods = ("bm25", "semantic", "hybrid") if args.command == "compare-retrieval" else (args.retriever,)
+            if set(methods) & {"semantic", "hybrid"}:
+                print("Preparing local semantic model and document embeddings...", file=sys.stderr)
+            indexes = build_indexes(load_search_documents(settings.dataset_dir), settings.artifacts_dir,
+                                    methods, offline=args.offline, rebuild=args.rebuild_embeddings)
+            if args.command == "compare-retrieval":
+                from .evaluation.retrieval import evaluate_retrieval, format_retrieval_summary
+                from .evaluation.runner import save_report
+                runs = []
+                for asr in (False, True):
+                    for method, index in indexes.items():
+                        report = evaluate_retrieval(settings, index, top_k=args.top_k, asr=asr)
+                        path = save_report(report, settings.artifacts_dir)
+                        print(format_retrieval_summary(report), flush=True)
+                        runs.append({"input_variant": report["input_variant"], "index": report["index"],
+                                     "practice_sha256": report["practice_sha256"], "summary": report["summary"],
+                                     "by_language": report["by_language"], "report": str(path)})
+                path = save_report({"schema_version": 1, "run_kind": "retrieval_comparison",
+                                    "top_k": args.top_k, "runs": runs}, settings.artifacts_dir)
+                print(f"Comparison report: {path}")
+                return
+            index = indexes[args.retriever]
             if args.command == "search":
                 hits = index.search(args.query, args.top_k)
                 if args.json:
@@ -48,8 +78,8 @@ def main() -> None:
                         lines.append(f"{rank}. [{hit.document.evidence_id}] {hit.score:.4f} - {hit.document.title}")
                         lines.append(f"   {hit.document.source}; type={metadata['doc_type']}; "
                                      f"status={metadata.get('status', 'not applicable')}; "
-                                     f"matches={', '.join(hit.term_scores)}")
-                    lines.append("BM25 relevance scores are not confidence or policy authority." if hits else
+                                     f"score_type={hit.score_kind}; matches={', '.join(hit.term_scores) or 'semantic'}")
+                    lines.append("Retrieval scores are not confidence or policy authority." if hits else
                                  "No matching terms found. Try different wording.")
                     output = "\n".join(lines)
                     encoding = sys.stdout.encoding or "utf-8"
@@ -99,7 +129,7 @@ def main() -> None:
                 cwd=settings.dataset_dir, check=False,
             )
             raise SystemExit(result.returncode)
-    except (ValueError, OSError) as exc:
+    except (ValueError, OSError, ImportError, RuntimeError) as exc:
         raise SystemExit(f"Dataset command failed: {exc}") from exc
     print("ZentroMart project setup is ready.")
     print(f"Dataset: {settings.dataset_dir}")

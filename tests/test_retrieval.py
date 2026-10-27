@@ -11,7 +11,7 @@ from zentromart.config import PROJECT_ROOT, load_settings
 from zentromart.dataset import read_table
 from zentromart.evaluation.cases import Case, Target
 from zentromart.evaluation.retrieval import evaluate_retrieval
-from zentromart.retrieval import BM25Index, SearchDocument, load_search_documents, tokenize
+from zentromart.retrieval import BM25Index, SearchDocument, build_indexes, load_search_documents, tokenize
 
 
 def document(identifier, text, status="current"):
@@ -19,6 +19,11 @@ def document(identifier, text, status="current"):
 
 
 class BM25Tests(unittest.TestCase):
+    def test_default_factory_does_not_import_optional_semantic_dependencies(self):
+        with patch.dict("sys.modules", {"zentromart.semantic": None}):
+            indexes = build_indexes([document("A", "refund")], Path("unused"), ("bm25",))
+        self.assertEqual(indexes["bm25"].search("refund")[0].document.evidence_id, "A")
+
     def test_unicode_words_keep_hindi_marks_and_identifier_zeros(self):
         self.assertEqual(tokenize("The REFUND, ELE-0012!"), ("refund", "ele", "0012"))
         self.assertEqual(tokenize("रिफ़ंड कैसे मिलेगा?"), ("रिफ़ंड", "कैसे", "मिलेगा"))

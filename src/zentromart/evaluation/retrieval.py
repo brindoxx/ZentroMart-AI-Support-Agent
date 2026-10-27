@@ -6,7 +6,7 @@ from statistics import mean
 from time import perf_counter
 
 from zentromart.config import Settings
-from zentromart.retrieval import BM25Index
+from zentromart.retrieval import SearchIndex
 from .cases import load_cases
 from .scoring import score_retrieval
 
@@ -26,7 +26,7 @@ def summarize_retrieval(rows: list[dict]) -> dict:
     }
 
 
-def evaluate_retrieval(settings: Settings, index: BM25Index, top_k: int = 5, asr: bool = False) -> dict:
+def evaluate_retrieval(settings: Settings, index: SearchIndex, top_k: int = 5, asr: bool = False) -> dict:
     if not isinstance(top_k, int) or isinstance(top_k, bool) or top_k < 1:
         raise ValueError("top-k must be a positive integer")
     sessions = load_cases(settings.dataset_dir, "questions", asr=asr)
@@ -64,7 +64,7 @@ def evaluate_retrieval(settings: Settings, index: BM25Index, top_k: int = 5, asr
         "limitations": [
             "Retrieval metrics are not answer correctness or a customer-support quality score.",
             "No-gold questions are excluded from relevance metrics, not treated as correct rejections.",
-            "BM25 can return lexical matches for unsupported questions; no abstention is implemented.",
+            "Retrieval can return matches for unsupported questions; no abstention is implemented.",
             "This baseline does not enforce policy precedence or historical applicability.",
             "Practice questions are development data; no hidden-test performance is claimed.",
             "ASR text is supplied simulated transcript text, not real speech recognition.",
@@ -75,7 +75,8 @@ def evaluate_retrieval(settings: Settings, index: BM25Index, top_k: int = 5, asr
 
 def format_retrieval_summary(report: dict) -> str:
     summary = report["summary"]
-    lines = [f"BM25 retrieval ({report['input_variant']}, top-k={report['top_k']})",
+    method = report["index"]["algorithm"].upper()
+    lines = [f"{method} retrieval ({report['input_variant']}, top-k={report['top_k']})",
              f"Index: {report['index']['document_count']} policy/catalog entries",
              f"{summary['questions']} questions; {summary['scored_questions']} with gold evidence; "
              f"{summary['no_gold_questions']} without gold evidence"]

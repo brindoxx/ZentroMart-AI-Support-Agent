@@ -1,0 +1,2 @@
+# Optional local embedding model dependencies, in addition to the core project.
+-e .[semantic]

@@ -5,12 +5,13 @@ positive smoothed IDF and explicit length normalization, not a learned model.
 """
 
 from collections import Counter
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 import hashlib
 import json
 import math
 from pathlib import Path
 import unicodedata
+from typing import Protocol
 
 from .dataset import read_table, require_columns
 from .ingestion import build_corpus
@@ -58,12 +59,36 @@ class SearchHit:
     document: SearchDocument
     score: float
     term_scores: dict[str, float]
+    score_kind: str = "bm25"
+    components: dict[str, float | int | None] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {"evidence_id": self.document.evidence_id, "score": self.score,
                 "title": self.document.title, "source": self.document.source,
                 "metadata": self.document.metadata, "matched_terms": self.term_scores,
-                "text": self.document.text}
+                "text": self.document.text, "score_kind": self.score_kind,
+                "components": self.components}
+
+
+class SearchIndex(Protocol):
+    documents: tuple[SearchDocument, ...]
+
+    def search(self, query: str, top_k: int = 5) -> list[SearchHit]: ...
+    def configuration(self) -> dict: ...
+
+
+def prepare_documents(documents: list[SearchDocument]) -> tuple[SearchDocument, ...]:
+    if not documents or len({doc.evidence_id for doc in documents}) != len(documents):
+        raise ValueError("Search needs nonempty documents with unique evidence IDs")
+    if any(not doc.evidence_id.strip() or not doc.text.strip() for doc in documents):
+        raise ValueError("Evidence IDs and document text must be nonempty")
+    return tuple(sorted(documents, key=lambda doc: doc.evidence_id))
+
+
+def corpus_fingerprint(documents: tuple[SearchDocument, ...]) -> str:
+    payload = json.dumps([asdict(doc) for doc in documents], sort_keys=True,
+                         ensure_ascii=False).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
 
 
 def load_search_documents(dataset_dir: Path) -> list[SearchDocument]:
@@ -106,11 +131,7 @@ class BM25Index:
     def __init__(self, documents: list[SearchDocument], k1: float = 1.2, b: float = 0.75):
         if not math.isfinite(k1) or k1 < 0 or not math.isfinite(b) or not 0 <= b <= 1:
             raise ValueError("BM25 requires finite k1 >= 0 and 0 <= b <= 1")
-        if not documents or len({doc.evidence_id for doc in documents}) != len(documents):
-            raise ValueError("Search needs nonempty documents with unique evidence IDs")
-        if any(not doc.evidence_id.strip() or not doc.text.strip() for doc in documents):
-            raise ValueError("Evidence IDs and document text must be nonempty")
-        self.documents = tuple(sorted(documents, key=lambda doc: doc.evidence_id))
+        self.documents = prepare_documents(documents)
         self.k1, self.b = k1, b
         self._frequencies = tuple(Counter(tokenize(doc.text)) for doc in self.documents)
         self._lengths = tuple(sum(counts.values()) for counts in self._frequencies)
@@ -120,9 +141,7 @@ class BM25Index:
         document_frequency = Counter(term for counts in self._frequencies for term in counts)
         self._idf = {term: math.log1p((len(self.documents) - count + 0.5) / (count + 0.5))
                      for term, count in document_frequency.items()}
-        payload = json.dumps([asdict(doc) for doc in self.documents], sort_keys=True,
-                             ensure_ascii=False).encode("utf-8")
-        self.corpus_sha256 = hashlib.sha256(payload).hexdigest()
+        self.corpus_sha256 = corpus_fingerprint(self.documents)
 
     def configuration(self) -> dict:
         return {"algorithm": "bm25", "k1": self.k1, "b": self.b,
@@ -149,3 +168,22 @@ class BM25Index:
             if contributions:
                 hits.append(SearchHit(doc, sum(contributions.values()), contributions))
         return sorted(hits, key=lambda hit: (-hit.score, hit.document.evidence_id))[:top_k]
+
+
+def build_indexes(documents: list[SearchDocument], artifacts_dir: Path,
+                  methods: tuple[str, ...], offline: bool = False,
+                  rebuild: bool = False) -> dict[str, SearchIndex]:
+    """Build shared components once; BM25 never imports optional model libraries."""
+    if not methods or not set(methods) <= {"bm25", "semantic", "hybrid"}:
+        raise ValueError("Unknown retrieval method")
+    lexical = BM25Index(documents)
+    indexes = {"bm25": lexical}
+    if set(methods) & {"semantic", "hybrid"}:
+        from .semantic import E5Encoder, SemanticIndex
+        semantic = SemanticIndex(documents, E5Encoder(artifacts_dir / "models", offline),
+                                 artifacts_dir / "embeddings", rebuild=rebuild)
+        indexes["semantic"] = semantic
+        if "hybrid" in methods:
+            from .hybrid import HybridIndex
+            indexes["hybrid"] = HybridIndex(lexical, semantic)
+    return {method: indexes[method] for method in methods}

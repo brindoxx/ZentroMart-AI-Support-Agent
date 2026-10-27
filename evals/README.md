@@ -48,3 +48,29 @@ The initial original-text Hit@5 is 38/47 (80.9%); ASR-text Hit@5 is 33/47 (70.2%
 Read `docs/phase-05-keyword-search.md` for full metrics and the fixed baseline's
 limitations. Generated reports use the same ignored `artifacts/evals/` area,
 with `run_kind: retrieval_evaluation` to distinguish them from agent runs.
+
+## Semantic and hybrid comparison (Phase 6)
+
+Install `requirements-semantic.txt`, then run:
+
+```powershell
+.\.venv\Scripts\python.exe -m zentromart evaluate-retrieval --retriever semantic
+.\.venv\Scripts\python.exe -m zentromart evaluate-retrieval --retriever hybrid --asr
+.\.venv\Scripts\python.exe -m zentromart compare-retrieval
+```
+
+The comparison uses BM25, cosine retrieval with pinned multilingual E5-small,
+and equal-weight reciprocal rank fusion. Each method runs on original and
+ASR-style text at the same top-K. Six individual reports and one aggregate report
+are saved. The same document vectors and model instance are shared during a
+comparison; gold labels never enter the retrievers. Model download and passage
+encoding happen before measured per-question search latency.
+
+Reports retain encoder/package revisions, prefixes, length limit, corpus and
+practice hashes, fusion settings, and cache status. Read
+`docs/phase-06-semantic-and-hybrid-search.md` for interpretation and limitations.
+
+Measured Hit@5 on original questions: BM25 80.9%, semantic 78.7%, hybrid 83.0%.
+On ASR-style text: BM25 70.2%, semantic 83.0%, hybrid 78.7%. All methods share
+47 scored questions per variant. The guide includes Recall@5 and MRR; no method
+wins every metric or input variant.
