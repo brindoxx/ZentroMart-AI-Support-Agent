@@ -109,8 +109,8 @@ accuracy or an end-to-end agent score.
 Both `--live` and a positive `--max-cases` are required. Selection is a deterministic
 prefix in session/turn order, not a curated list of successes. A cap may stop
 mid-conversation. `planned_rows`, `available_rows`, the cap, attempted rows, and
-early-stop status are recorded. The adapter ignores history until Phase 10 and
-cannot use private tools, so conversation/tool metrics are not readiness claims.
+early-stop status are recorded. The `gemini` adapter remains stateless and cannot
+use private tools, so conversation/tool metrics are not readiness claims.
 
 The first agent error stops this CLI run; failed rows stay in the report, and
 unattempted cases do not masquerade as completed ones. Deterministic citation or
@@ -128,3 +128,28 @@ the reply's bracketed references. It is not an entailment check. Likewise,
 gold-ID precision and lexical fact coverage are diagnostics requiring review,
 not a universal accuracy score. Initial six-case results and limitations are in
 `docs/phase-09-grounded-replies.md`.
+
+## Conversation state (Phase 10)
+
+```powershell
+.\.venv\Scripts\python.exe -m zentromart evaluate --agent gemini-stateful --live --suite conversations --max-cases 6
+```
+
+The new opt-in adapter owns its memory rather than accepting `AgentRequest.history`
+as authoritative replay. The existing factory creates a fresh agent for each
+conversation. One instance rejects a different session ID until reset. A bounded
+customer-only memory window supports follow-ups; no assistant reply or claimed
+verification becomes evidence or permission for private tools.
+
+Reports record the conversation version, memory-prompt hash, memory limits,
+no-verification status, index/model settings, and redacted grounding counters.
+They do not save memory, slots, claimed order IDs, prompts, or replies. Unknown
+or ambiguous slot values trigger clarification without a model call. The same
+case cap and stop-on-first-error rules apply. Typed/runtime scenario context
+changes the retrieval query for short follow-ups, so keep stateful and stateless
+results separate; these are different agent configurations.
+
+Phase 10's live verification used a synthetic six-turn sequence with only three
+generation calls; it was not a scored run of the supplied conversation suite.
+Its results and remaining parser/answer-quality limitations are documented in
+`docs/phase-10-conversation-state.md`.

@@ -8,13 +8,13 @@ Transformers course.
 
 ## Current progress
 
-**Phases 1–9 complete: retrieval, policy handling, and guarded Gemini policy replies.**
+**Phases 1–10 complete: guarded policy replies and in-memory conversation state.**
 The project supports BM25, local multilingual semantic search, and hybrid rank
 fusion over policy sections and public product facts, with separate retrieval
 evaluation. A deterministic layer now prioritizes policy authority and applies
 scoped historical, festive, and marketplace exceptions to explicit scenario facts.
-Gemini now generates stateless public-policy replies with source-ID checks and
-safe clarification fallbacks. Verified order workflows, conversation state,
+Gemini now generates public-policy replies with source-ID checks, safe
+clarification fallbacks, and an opt-in memory-backed conversation mode. Verified order workflows,
 the web interface, and voice support are planned for later phases.
 
 The planned agent will answer from company policies, verify callers before
@@ -198,6 +198,26 @@ Read the [Phase 9 learning guide](docs/phase-09-grounded-replies.md) for measure
 results, citation limitations, and examples. `--offline` only keeps optional
 semantic embeddings offline; Gemini answering still needs the network.
 
+## Keep follow-up context in memory (Phase 10)
+
+```powershell
+.\.venv\Scripts\python.exe -m zentromart chat --live
+.\.venv\Scripts\python.exe -m zentromart evaluate --agent gemini-stateful --live --suite conversations --max-cases 6
+```
+
+In chat, try `How long do UPI refunds take?`, then `And cards?`. Use `/reset`
+to clear the conversation and `/quit` to exit. For returns, the agent can collect
+a category and an explicit `YYYY-MM-DD` date over separate turns. Narrow routing
+and slot patterns are not general intent/entity understanding. Product, order,
+and topic changes conservatively clear earlier scenario facts.
+
+One agent owns one session. External history and remembered claims never verify
+identity; no private order tools are connected yet. Up to four minimized customer
+turns are used as context, with fresh retrieval each time. No assistant answers
+become policy evidence, and the application writes no transcript. Memory
+minimization is not comprehensive PII detection. `answer` and `--agent gemini`
+remain stateless for comparison. See the [Phase 10 learning guide](docs/phase-10-conversation-state.md).
+
 ## Repository layout
 
 ```text
@@ -226,8 +246,9 @@ verification, and evaluation evidence IDs. All customer records are synthetic.
 6. Completed: policy precedence, scoped applicability, and evidence provenance.
 7. Completed: Gemini model connection with a successful synthetic live access check.
 8. Completed: stateless grounded replies, citation checks, and bounded live evaluation.
-9. Next, Phase 10: conversation state; Phases 11–15 add verified tools, calculations, and interface.
-10. Phases 16–21: voice, evaluation, deployment, documentation, and release.
+9. Completed: bounded conversation memory, conservative slot handling, and session isolation.
+10. Next, Phase 11: identity-checked mock order tools; Phases 12–15 add handovers, calculations, and interface.
+11. Phases 16–21: voice, evaluation, deployment, documentation, and release.
 
 Keep service credentials, generated conversation records, and ticket files out
 of this repository and the report. `.gitignore` excludes local credentials,

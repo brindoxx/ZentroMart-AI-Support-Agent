@@ -55,19 +55,23 @@ def main() -> None:
     answer.add_argument("--language", choices=("en", "hi", "hi-en"))
     answer.add_argument("--top-k", type=int, default=5)
     answer.add_argument("--json", action="store_true", help="Print reply, source IDs, and redacted trace")
+    chat = commands.add_parser("chat", help="Run an in-memory support conversation; no transcript is saved")
+    chat.add_argument("--live", action="store_true", help="Allow sending questions and bounded customer memory to Gemini")
+    chat.add_argument("--language", choices=("en", "hi", "hi-en"))
+    chat.add_argument("--top-k", type=int, default=5)
     retrieval_eval = commands.add_parser("evaluate-retrieval", help="Score evidence retrieval on questions")
     retrieval_eval.add_argument("--top-k", type=int, default=5)
     retrieval_eval.add_argument("--asr", action="store_true")
     comparison = commands.add_parser("compare-retrieval", help="Compare BM25, semantic, and hybrid on text and ASR")
     comparison.add_argument("--top-k", type=int, default=5)
-    for command in (search, retrieval_eval, policy_search, answer):
+    for command in (search, retrieval_eval, policy_search, answer, chat):
         command.add_argument("--retriever", choices=("bm25", "semantic", "hybrid"), default="bm25")
-    for command in (search, retrieval_eval, comparison, policy_search, answer):
+    for command in (search, retrieval_eval, comparison, policy_search, answer, chat):
         command.add_argument("--offline", action="store_true", help="Use only previously downloaded model files")
         command.add_argument("--rebuild-embeddings", action="store_true", help="Recompute document embeddings")
     evaluation = commands.add_parser("evaluate", help="Run offline practice evaluation")
     evaluation.add_argument("--suite", choices=("all", "questions", "conversations"), default="all")
-    evaluation.add_argument("--agent", choices=("baseline", "gemini"), default="baseline")
+    evaluation.add_argument("--agent", choices=("baseline", "gemini", "gemini-stateful"), default="baseline")
     evaluation.add_argument("--live", action="store_true", help="Allow Gemini calls when --agent gemini is selected")
     evaluation.add_argument("--max-cases", type=int, help="Evaluate only a deterministic prefix of cases")
     evaluation.add_argument("--retriever", choices=("bm25", "semantic", "hybrid"), default="bm25")
@@ -75,9 +79,9 @@ def main() -> None:
     evaluation.add_argument("--asr", action="store_true", help="Use ASR-style text for questions")
     evaluation.add_argument("--top-k", type=int, default=5)
     args = parser.parse_args()
-    if args.command == "answer" and not args.live:
-        parser.error("answer requires --live: your question and public evidence will be sent to Gemini")
-    if args.command == "evaluate" and args.agent == "gemini" and not args.live:
+    if args.command in {"answer", "chat"} and not args.live:
+        parser.error("answer/chat requires --live: questions and public evidence will be sent to Gemini")
+    if args.command == "evaluate" and args.agent in {"gemini", "gemini-stateful"} and not args.live:
         parser.error("--agent gemini requires --live and consumes API quota")
     if args.command == "evaluate" and args.agent == "baseline" and (args.live or args.retriever != "bm25" or args.offline):
         parser.error("Live/retriever options require --agent gemini; baseline has no retriever or model")
@@ -94,7 +98,7 @@ def main() -> None:
             return
         settings = load_settings()
         settings.validate_dataset_layout()
-        if args.command in {"search", "evaluate-retrieval", "compare-retrieval", "policy-search", "answer"}:
+        if args.command in {"search", "evaluate-retrieval", "compare-retrieval", "policy-search", "answer", "chat"}:
             from .retrieval import build_indexes, load_search_documents
             if args.top_k < 1:
                 raise ValueError("top-k must be positive")
@@ -120,6 +124,36 @@ def main() -> None:
                 print(f"Comparison report: {path}")
                 return
             index = indexes[args.retriever]
+            if args.command == "chat":
+                from uuid import uuid4
+                from .config import load_llm_settings
+                from .contracts import AgentRequest
+                from .conversation import ConversationalAgent
+                from .llm import GeminiModel, ModelError
+                agent = ConversationalAgent(index, GeminiModel(load_llm_settings()), settings.reference_date,
+                                            top_k=args.top_k, reply_language=args.language)
+                session = uuid4().hex
+                print("Public-policy chat. /reset clears memory; /quit exits. No private order tools or transcript saving.")
+                while True:
+                    try:
+                        message = input("You: ")
+                    except (EOFError, KeyboardInterrupt):
+                        print("\nChat ended; in-memory state discarded.")
+                        break
+                    if message.strip().casefold() == "/quit":
+                        break
+                    if not message.strip():
+                        continue
+                    try:
+                        response = agent.respond(AgentRequest(session, message))
+                    except ModelError as exc:
+                        print(f"Model unavailable ({exc.code}). Ending chat to avoid repeated API calls.")
+                        break
+                    output = response.reply
+                    encoding = sys.stdout.encoding or "utf-8"
+                    print(output.encode(encoding, errors="backslashreplace").decode(encoding))
+                agent.reset()
+                return
             if args.command == "answer":
                 from dataclasses import asdict
                 from .config import load_llm_settings
@@ -201,9 +235,10 @@ def main() -> None:
             from .evaluation.runner import format_summary, run_evaluation, save_report
             options = {"suite": args.suite, "asr": args.asr, "top_k": args.top_k, "max_cases": args.max_cases}
             configuration = None
-            if args.agent == "gemini":
+            if args.agent in {"gemini", "gemini-stateful"}:
                 from .config import load_llm_settings
                 from .grounding import GroundedAgent
+                from .conversation import ConversationalAgent
                 from .llm import GeminiModel, sdk_version
                 from .retrieval import build_indexes, load_search_documents
                 if args.max_cases is None or args.max_cases < 1 or not 1 <= args.top_k <= 20:
@@ -215,13 +250,15 @@ def main() -> None:
                 index = build_indexes(load_search_documents(settings.dataset_dir), settings.artifacts_dir,
                                       (args.retriever,), offline=args.offline)[args.retriever]
                 def factory():
-                    return GroundedAgent(index, model, settings.reference_date, top_k=args.top_k)
+                    agent_type = ConversationalAgent if args.agent == "gemini-stateful" else GroundedAgent
+                    return agent_type(index, model, settings.reference_date, top_k=args.top_k)
                 configuration = {**factory().configuration(), "provider": model_settings.provider,
                                  "model": model_settings.model, "sdk_version": sdk_version(),
                                  "timeout_seconds": model_settings.timeout_seconds,
                                  "max_output_tokens": model_settings.max_output_tokens,
                                  "retries": model_settings.retries}
-                options.update(factory=factory, agent_name="gemini_grounded", stop_on_error=True)
+                options.update(factory=factory, agent_name="gemini_conversational" if args.agent == "gemini-stateful" else "gemini_grounded",
+                               stop_on_error=True)
             report = run_evaluation(settings, **options)
             if configuration:
                 report["agent_configuration"] = configuration

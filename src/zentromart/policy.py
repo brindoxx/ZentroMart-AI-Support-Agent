@@ -113,6 +113,10 @@ class PolicyEngine:
             category = actual
         return category, product
 
+    def validate_context(self, context: PolicyContext) -> str | None:
+        """Validate public scenario claims and return the catalog-resolved category."""
+        return self._context(context)[0]
+
     def assemble(self, query: str, context: PolicyContext = PolicyContext(), top_k: int = 5) -> dict:
         if top_k < 1:
             raise ValueError("top-k must be positive")
