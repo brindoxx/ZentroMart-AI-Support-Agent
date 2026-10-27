@@ -59,6 +59,8 @@ def main() -> None:
     chat.add_argument("--live", action="store_true", help="Allow sending questions and bounded customer memory to Gemini")
     chat.add_argument("--language", choices=("en", "hi", "hi-en"))
     chat.add_argument("--top-k", type=int, default=5)
+    chat.add_argument("--support", action="store_true", help="Enable identity-checked synthetic order workflows")
+    chat.add_argument("--write-tickets", action="store_true", help="Allow local mock ticket records; requires --support")
     retrieval_eval = commands.add_parser("evaluate-retrieval", help="Score evidence retrieval on questions")
     retrieval_eval.add_argument("--top-k", type=int, default=5)
     retrieval_eval.add_argument("--asr", action="store_true")
@@ -71,7 +73,8 @@ def main() -> None:
         command.add_argument("--rebuild-embeddings", action="store_true", help="Recompute document embeddings")
     evaluation = commands.add_parser("evaluate", help="Run offline practice evaluation")
     evaluation.add_argument("--suite", choices=("all", "questions", "conversations"), default="all")
-    evaluation.add_argument("--agent", choices=("baseline", "gemini", "gemini-stateful"), default="baseline")
+    evaluation.add_argument("--agent", choices=("baseline", "gemini", "gemini-stateful", "support"), default="baseline")
+    evaluation.add_argument("--write-tickets", action="store_true", help="Allow local mock ticket writes only with --agent support")
     evaluation.add_argument("--live", action="store_true", help="Allow Gemini calls when --agent gemini is selected")
     evaluation.add_argument("--max-cases", type=int, help="Evaluate only a deterministic prefix of cases")
     evaluation.add_argument("--retriever", choices=("bm25", "semantic", "hybrid"), default="bm25")
@@ -81,10 +84,14 @@ def main() -> None:
     args = parser.parse_args()
     if args.command in {"answer", "chat"} and not args.live:
         parser.error("answer/chat requires --live: questions and public evidence will be sent to Gemini")
-    if args.command == "evaluate" and args.agent in {"gemini", "gemini-stateful"} and not args.live:
+    if args.command == "evaluate" and args.agent in {"gemini", "gemini-stateful", "support"} and not args.live:
         parser.error("--agent gemini requires --live and consumes API quota")
     if args.command == "evaluate" and args.agent == "baseline" and (args.live or args.retriever != "bm25" or args.offline):
         parser.error("Live/retriever options require --agent gemini; baseline has no retriever or model")
+    if args.command == "chat" and args.write_tickets and not args.support:
+        parser.error("--write-tickets requires --support")
+    if args.command == "evaluate" and args.write_tickets and args.agent != "support":
+        parser.error("--write-tickets requires --agent support")
     try:
         if args.command == "llm-check":
             from .config import load_llm_settings
@@ -132,8 +139,21 @@ def main() -> None:
                 from .llm import GeminiModel, ModelError
                 agent = ConversationalAgent(index, GeminiModel(load_llm_settings()), settings.reference_date,
                                             top_k=args.top_k, reply_language=args.language)
+                if args.support:
+                    from .calculations import BusinessCalendar
+                    from .tools import MockToolGateway
+                    from .workflows import SupportAgent
+                    agent = SupportAgent(index, agent.model, settings.reference_date,
+                                         calendar=BusinessCalendar.load(settings.dataset_dir),
+                                         gateway=MockToolGateway(settings.dataset_dir, settings.artifacts_dir / "tickets",
+                                                                 allow_ticket_writes=args.write_tickets),
+                                         top_k=args.top_k, reply_language=args.language,
+                                         allow_ticket_writes=args.write_tickets)
                 session = uuid4().hex
-                print("Public-policy chat. /reset clears memory; /quit exits. No private order tools or transcript saving.")
+                print("Synthetic support chat. Verification is NOT production authentication. /items, /item LINE QTY, /policy QUESTION, /reset, /quit."
+                      if args.support else "Public-policy chat. /reset clears memory; /quit exits. No private order tools or transcript saving.")
+                if args.support:
+                    print(f"Local mock ticket writes: {'enabled' if args.write_tickets else 'disabled'}. No transcript is saved.")
                 while True:
                     try:
                         message = input("You: ")
@@ -235,7 +255,7 @@ def main() -> None:
             from .evaluation.runner import format_summary, run_evaluation, save_report
             options = {"suite": args.suite, "asr": args.asr, "top_k": args.top_k, "max_cases": args.max_cases}
             configuration = None
-            if args.agent in {"gemini", "gemini-stateful"}:
+            if args.agent in {"gemini", "gemini-stateful", "support"}:
                 from .config import load_llm_settings
                 from .grounding import GroundedAgent
                 from .conversation import ConversationalAgent
@@ -249,7 +269,17 @@ def main() -> None:
                 model = GeminiModel(model_settings)
                 index = build_indexes(load_search_documents(settings.dataset_dir), settings.artifacts_dir,
                                       (args.retriever,), offline=args.offline)[args.retriever]
+                if args.agent == "support":
+                    from .calculations import BusinessCalendar
+                    from .tools import MockToolGateway
+                    from .workflows import SupportAgent
+                    calendar = BusinessCalendar.load(settings.dataset_dir)
+                    gateway = MockToolGateway(settings.dataset_dir, settings.artifacts_dir / "tickets",
+                                              allow_ticket_writes=args.write_tickets)
                 def factory():
+                    if args.agent == "support":
+                        return SupportAgent(index, model, settings.reference_date, calendar=calendar, gateway=gateway,
+                                            top_k=args.top_k, allow_ticket_writes=args.write_tickets)
                     agent_type = ConversationalAgent if args.agent == "gemini-stateful" else GroundedAgent
                     return agent_type(index, model, settings.reference_date, top_k=args.top_k)
                 configuration = {**factory().configuration(), "provider": model_settings.provider,
@@ -257,7 +287,8 @@ def main() -> None:
                                  "timeout_seconds": model_settings.timeout_seconds,
                                  "max_output_tokens": model_settings.max_output_tokens,
                                  "retries": model_settings.retries}
-                options.update(factory=factory, agent_name="gemini_conversational" if args.agent == "gemini-stateful" else "gemini_grounded",
+                options.update(factory=factory, agent_name="verified_mock_support" if args.agent == "support" else
+                               "gemini_conversational" if args.agent == "gemini-stateful" else "gemini_grounded",
                                stop_on_error=True)
             report = run_evaluation(settings, **options)
             if configuration:
