@@ -74,3 +74,17 @@ Measured Hit@5 on original questions: BM25 80.9%, semantic 78.7%, hybrid 83.0%.
 On ASR-style text: BM25 70.2%, semantic 83.0%, hybrid 78.7%. All methods share
 47 scored questions per variant. The guide includes Recall@5 and MRR; no method
 wins every metric or input variant.
+
+## Policy regression scenarios (Phase 7)
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -p test_policy.py -v
+```
+
+These source-grounded unit tests cover precedence, historical/festive date
+boundaries, marketplace exclusions, missing context, and evidence provenance.
+They use controlled rankings over the public corpus, without evaluation labels
+or model downloads. They are not a new chatbot-accuracy or retrieval benchmark.
+`policy-search` can attach explicit topic anchors and policy dependencies, so its
+bundle may exceed top-K; these attached passages must not count as raw retrieval
+hits. Existing Phase 5/6 metrics continue to measure the unmodified retrievers.

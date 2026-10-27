@@ -8,10 +8,12 @@ Transformers course.
 
 ## Current progress
 
-**Phases 1–6 complete: foundation, inspection, evaluation, ingestion, and hybrid retrieval.**
+**Phases 1–7 complete: foundation, evaluation, retrieval, and policy evidence handling.**
 The project supports BM25, local multilingual semantic search, and hybrid rank
 fusion over policy sections and public product facts, with separate retrieval
-evaluation. Model-generated replies, order workflows, the web interface, and
+evaluation. A deterministic layer now prioritizes policy authority and applies
+scoped historical, festive, and marketplace exceptions to explicit scenario facts.
+Model-generated replies, order workflows, the web interface, and
 voice support are planned for later phases.
 
 The planned agent will answer from company policies, verify callers before
@@ -118,6 +120,24 @@ and 83.0% for hybrid. For ASR-style text it is 70.2%, 83.0%, and 78.7%, respecti
 These are development retrieval results across 47 gold-evidence questions,
 not chatbot accuracy. The full comparison and limitations are in the Phase 6 guide.
 
+## Prepare applicable policy evidence
+
+```powershell
+.\.venv\Scripts\python.exe -m zentromart policy-search "electronics return window" --topic return_window --category electronics --delivered-on 2026-07-31
+.\.venv\Scripts\python.exe -m zentromart policy-search "fashion returns" --topic return_window --category fashion --placed-on 2026-10-15 --json
+.\.venv\Scripts\python.exe -m zentromart policy-search "Assured warranty" --topic warranty --sku ELE-0004
+```
+
+The evidence bundle places governing policies above FAQs and marketing, excludes
+superseded passages outside explicit exceptions, and flags missing scenario
+context. Topic and dates are supplied explicitly: there is no automatic intent
+extraction, identity verification, deadline calculation, or generated answer yet.
+`--retriever semantic --offline` and `--retriever hybrid --offline` also work after
+model installation. Raw `search` and retrieval metrics remain unchanged.
+See the [Phase 7 learning guide](docs/phase-07-policy-precedence.md) for the rules,
+source provenance, boundary examples, and limitations. Core BM25 policy handling
+needs no API keys or model download.
+
 ## Configuration
 
 `src/zentromart/config.py` loads `.env` from the repository root. Environment
@@ -139,7 +159,7 @@ integrations. Never commit `.env` or real credentials.
 ```text
 dataset/                 Supplied synthetic dataset and documentation
 src/zentromart/          Python package and central configuration
-tests/                   Configuration, data, evaluation, ingestion, and retrieval tests
+tests/                   Configuration, data, evaluation, retrieval, and policy tests
 docs/                    Phase-by-phase learning notes
 evals/                   Evaluation usage and adapter guidance
 report/                  Final report workspace
@@ -159,9 +179,10 @@ verification, and evaluation evidence IDs. All customer records are synthetic.
 3. Completed: parse knowledge documents into sections with metadata and source context.
 4. Completed: add keyword retrieval with BM25 and measure its development baseline.
 5. Completed: semantic/hybrid retrieval and a real-model comparison on both input variants.
-6. Next, Phases 7–9: policy precedence/applicability, model integration, and grounded replies.
-7. Phases 10–15: conversation state, verified tools, calculations, and interface.
-8. Phases 16–21: voice, evaluation, deployment, documentation, and release.
+6. Completed: policy precedence, scoped applicability, and evidence provenance.
+7. Next, Phases 8–9: model integration and grounded replies.
+8. Phases 10–15: conversation state, verified tools, calculations, and interface.
+9. Phases 16–21: voice, evaluation, deployment, documentation, and release.
 
 Keep service credentials, generated conversation records, and ticket files out
 of this repository and the report. `.gitignore` excludes local credentials,

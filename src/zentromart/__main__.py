@@ -1,12 +1,23 @@
 """Offline setup, inspection, ingestion, and evaluation commands."""
 
 import argparse
+from datetime import date
 import json
 import subprocess
 import sys
 
 from .config import load_settings
 from .dataset import format_inspection, inspect_dataset
+
+
+def scenario_date(value: str) -> date:
+    try:
+        parsed = date.fromisoformat(value)
+        if parsed.isoformat() != value:
+            raise ValueError
+        return parsed
+    except ValueError:
+        raise argparse.ArgumentTypeError("Use a date in YYYY-MM-DD format") from None
 
 
 def main() -> None:
@@ -21,14 +32,24 @@ def main() -> None:
     search.add_argument("query")
     search.add_argument("--top-k", type=int, default=5)
     search.add_argument("--json", action="store_true", help="Show full passages, metadata, and score contributions")
+    from .policy import CATEGORIES, TOPIC_ANCHORS
+    policy_search = commands.add_parser("policy-search", help="Prepare policy evidence with explicit scenario context")
+    policy_search.add_argument("query")
+    policy_search.add_argument("--topic", choices=tuple(TOPIC_ANCHORS), default="general")
+    policy_search.add_argument("--category", choices=sorted(CATEGORIES))
+    policy_search.add_argument("--sku")
+    policy_search.add_argument("--delivered-on", type=scenario_date)
+    policy_search.add_argument("--placed-on", type=scenario_date)
+    policy_search.add_argument("--top-k", type=int, default=5)
+    policy_search.add_argument("--json", action="store_true", help="Show the complete evidence bundle and provenance")
     retrieval_eval = commands.add_parser("evaluate-retrieval", help="Score evidence retrieval on questions")
     retrieval_eval.add_argument("--top-k", type=int, default=5)
     retrieval_eval.add_argument("--asr", action="store_true")
     comparison = commands.add_parser("compare-retrieval", help="Compare BM25, semantic, and hybrid on text and ASR")
     comparison.add_argument("--top-k", type=int, default=5)
-    for command in (search, retrieval_eval):
+    for command in (search, retrieval_eval, policy_search):
         command.add_argument("--retriever", choices=("bm25", "semantic", "hybrid"), default="bm25")
-    for command in (search, retrieval_eval, comparison):
+    for command in (search, retrieval_eval, comparison, policy_search):
         command.add_argument("--offline", action="store_true", help="Use only previously downloaded model files")
         command.add_argument("--rebuild-embeddings", action="store_true", help="Recompute document embeddings")
     evaluation = commands.add_parser("evaluate", help="Run offline practice evaluation")
@@ -40,7 +61,7 @@ def main() -> None:
     try:
         settings = load_settings()
         settings.validate_dataset_layout()
-        if args.command in {"search", "evaluate-retrieval", "compare-retrieval"}:
+        if args.command in {"search", "evaluate-retrieval", "compare-retrieval", "policy-search"}:
             from .retrieval import build_indexes, load_search_documents
             if args.top_k < 1:
                 raise ValueError("top-k must be positive")
@@ -66,6 +87,23 @@ def main() -> None:
                 print(f"Comparison report: {path}")
                 return
             index = indexes[args.retriever]
+            if args.command == "policy-search":
+                from .policy import PolicyContext, PolicyEngine
+                context = PolicyContext(topic=args.topic, category=args.category, sku=args.sku,
+                                        delivered_on=args.delivered_on, placed_on=args.placed_on)
+                bundle = PolicyEngine(index, settings.reference_date).assemble(args.query, context, args.top_k)
+                if args.json:
+                    print(json.dumps(bundle, indent=2))
+                else:
+                    print(f"Policy evidence: {bundle['resolution']} (topic={bundle['topic']})")
+                    print(f"Applicability: {bundle['applicability']}")
+                    print(f"Required context: {', '.join(bundle['required_context']) or 'none'}")
+                    for item in bundle["evidence"]:
+                        print(f"  [{item['evidence_id']}] {item['role']}; source={item['source']}")
+                    for item in bundle["excluded"]:
+                        print(f"  Excluded [{item['evidence_id']}]: {item['reason']}")
+                    print("Scenario fields are not identity proof. This command prepares evidence, not a final answer.")
+                return
             if args.command == "search":
                 hits = index.search(args.query, args.top_k)
                 if args.json:
