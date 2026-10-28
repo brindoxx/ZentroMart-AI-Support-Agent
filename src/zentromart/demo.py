@@ -44,6 +44,16 @@ class DemoGateway:
         self.ticket_gateway = ticket_gateway
         self.allow_ticket_writes = False
 
+    @property
+    def allow_ticket_writes(self):
+        return self.ticket_gateway.allow_ticket_writes
+
+    @allow_ticket_writes.setter
+    def allow_ticket_writes(self, enabled):
+        if type(enabled) is not bool:
+            raise ValueError("Ticket consent must be boolean")
+        self.ticket_gateway.allow_ticket_writes = enabled
+
     def lookup_order(self, order_id, verification_value=None):
         if not isinstance(order_id, str) or not re.fullmatch(r"[0-9]{8}", order_id):
             raise ValueError("Use an eight-digit order ID")
@@ -59,5 +69,4 @@ class DemoGateway:
     def create_ticket(self, **arguments):
         if not self.allow_ticket_writes:
             return {"created": False, "disabled": True}
-        self.ticket_gateway.allow_ticket_writes = True
         return self.ticket_gateway.create_ticket(**arguments)

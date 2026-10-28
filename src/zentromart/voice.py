@@ -164,6 +164,10 @@ class VoiceSession:
         self.limit = 20
         self.blocked = False
 
+    def resume(self):
+        """Explicit user retry after fixing access; never renew the budget."""
+        self.blocked = False
+
     def run(self, action, value, language):
         if self.enabled is not True:
             raise VoiceError("consent_required")
@@ -171,15 +175,18 @@ class VoiceSession:
             raise VoiceError("paused")
         if action not in {"transcribe", "synthesize"}:
             raise VoiceError("invalid_action")
+        if language not in {"en", "hi", "hi-en"}:
+            raise VoiceError("invalid_language")
         # Validate locally before loading a key or spending any credits.
         if action == "transcribe":
             pcm_from_wav(value)
         elif not isinstance(value, str) or not 1 <= len(value) <= 800:
             raise VoiceError("invalid_text")
+        key = load_voice_key()  # A corrected local key can be retried without reloading.
         self.attempts += 1
         try:
-            client = GnaniSpeech(load_voice_key())
+            client = GnaniSpeech(key)
             return asyncio.run(getattr(client, action)(value, language))
-        except VoiceError:
-            self.blocked = True
+        except VoiceError as error:
+            self.blocked = str(error) == "service_failed"
             raise

@@ -3,7 +3,7 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "zetromart-ai-support-agent"
+name = "zentromart-ai-support-agent"
 version = "0.1.0"
 description = "A multilingual customer support capstone for the fictional retailer ZentroMart."
 readme = "README.md"
@@ -13,7 +13,7 @@ dependencies = ["python-dotenv>=1.0,<2"]
 [project.optional-dependencies]
 semantic = ["sentence-transformers>=5.1,<6", "numpy>=2.1,<3"]
 llm = ["google-genai>=1.75,<2"]
-ui = ["streamlit>=1.66.1,<1.67", "google-genai>=1.75,<2"]
+ui = ["streamlit>=1.66.1,<2", "google-genai>=1.75,<2"]
 voice = ["websockets>=16,<17"]
 
 [tool.setuptools.packages.find]

@@ -11,7 +11,7 @@ from .dataset import read_table
 from .policy import PolicyContext, PolicyEngine
 
 
-RULE_VERSION = "zentromart-calculations-v1"
+RULE_VERSION = "zentromart-calculations-v2"
 RULE_SOURCES = frozenset({"RET-2", "RET-3", "RET-6", "RET-8", "RETv3-2", "REF-1", "REF-2", "REF-3",
                          "REF-4", "REF-5", "CAN-1", "CAN-2", "CAN-3", "DEL-4", "DWM-1", "DWM-3",
                          "DWM-5", "ESC-1", "ESC-2", "IDV-1", "IDV-3", "PLS-2",
@@ -162,7 +162,9 @@ def refund_timing(order: dict, calendar: BusinessCalendar, reference=FROZEN_REFE
     if initiated > reference:
         raise ValueError("Refund initiation follows the dataset reference date")
     method = order.get(f"{prefix}_refund_method")
-    completed = order.get("return_refund_completed_on") if prefix == "return" else None
+    # Optional adapter fields: the supplied CSV only records return completion.
+    # Never infer payment completion from cancelled/RTO order status or elapsed time.
+    completed = order.get(f"{prefix}_refund_completed_on")
     common = {"prefix": prefix, "method": method, "amount_inr": order.get(f"{prefix}_refund_amount_inr"),
               "rrn": order.get(f"{prefix}_rrn"), "completed_on": completed,
               "evidence": ("REF-2", "REF-3", "REF-6")}

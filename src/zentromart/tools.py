@@ -16,6 +16,7 @@ return_requested_on return_pickup_on return_qc_passed_on return_refund_initiated
 return_refund_amount_inr return_refund_completed_on return_rrn return_reverse_pickup_fee_inr
 damage_sku damage_issue damage_reported_at damage_hours_after_delivery damage_photos_attached damage_status is_plus""".split())
 ITEM_FIELDS = frozenset({"line_no", "sku", "return_category", "qty", "unit_price_inr"})
+ORDER_FIELDS = ORDER_FIELDS | {"cancellation_refund_completed_on", "rto_refund_completed_on"}
 
 
 class ToolExecutionError(RuntimeError):

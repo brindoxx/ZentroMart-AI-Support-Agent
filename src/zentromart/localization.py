@@ -143,7 +143,16 @@ def _compile(row):
     return re.compile(pattern), row
 
 
-COMPILED = tuple(_compile(row) for row in SENTENCES)
+EXACT_SENTENCES = {}
+TEMPLATE_BUCKETS = {}
+for row in SENTENCES:
+    compiled = _compile(row)
+    if "{" in row[0]:
+        TEMPLATE_BUCKETS.setdefault(row[0].split()[0], []).append(compiled)
+    else:
+        if row[0] in EXACT_SENTENCES:
+            raise ValueError("Duplicate workflow translation")
+        EXACT_SENTENCES[row[0]] = row
 
 
 def localize(text, language):
@@ -160,7 +169,12 @@ def localize(text, language):
         return prefix + payload.replace("line", "लाइन" if language == "hi" else "line").replace("quantity", "मात्रा" if language == "hi" else "quantity")
     output = []
     for sentence in re.split(r"(?<=\.)\s+", text.strip()):
-        for pattern, row in COMPILED:
+        exact = EXACT_SENTENCES.get(sentence)
+        if exact is not None:
+            output.append(exact[1 if language == "hi" else 2])
+            continue
+        # Only formatted sentences sharing the first literal word need a regex.
+        for pattern, row in TEMPLATE_BUCKETS.get(sentence.split()[0], ()):
             match = pattern.fullmatch(sentence)
             if match:
                 output.append(row[1 if language == "hi" else 2].format(**match.groupdict()))

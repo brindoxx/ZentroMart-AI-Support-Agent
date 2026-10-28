@@ -11,16 +11,18 @@ import re
 import unicodedata
 
 from .contracts import AgentRequest, AgentResponse
-from .grounding import GroundedAgent, GroundingTrace, MEMORY_PROMPT_SHA256
+from .grounding import (GroundedAgent, GroundingTrace, MEMORY_PROMPT_SHA256,
+                        validate_answer_options, grounded_configuration, ask_for_context)
+from .privacy import minimize
 from .llm import StructuredModel
 from .policy import PolicyContext, PolicyEngine
 from .retrieval import SearchIndex
 
 
-CONVERSATION_VERSION = "zentromart-conversation-v2"
+CONVERSATION_VERSION = "zentromart-conversation-v3"
 CATEGORY_WORDS = {
     "electronics": r"\belectronics?\b|\bheadphones?\b|इलेक्ट्रॉनिक्स",
-    "fashion": r"\bfashion\b|\bclothes\b|\bclothing\b|\bfootwear\b|कपड़े|कपड़ों|कपड़[ेों]+",
+    "fashion": r"\bfashion\b|\bclothes\b|\bclothing\b|\bfootwear\b|\b(?:shirts?|jeans|kurta|saree|kapde)\b|कपड़े|कपड़ों|कपड़[ेों]+|कमीज़|कमीज",
     "home_kitchen": r"\bhome_kitchen\b|\bfurniture\b|\bkitchen\b",
     "beauty_sealed": r"\bbeauty(?:_sealed)?\b|\bcosmetics?\b",
     "books_media": r"\bbooks?(?:_media)?\b|\bstationery\b|किताब",
@@ -56,14 +58,12 @@ def normalize(text: str) -> str:
 
 def memory_text(text: str) -> str:
     """Basic minimization, not a complete PII detector or production redactor."""
-    text = re.sub(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", "<email omitted>", text)
-    text = re.sub(r"https?://\S+", "<URL omitted>", text)
-    text = re.sub(r"\d(?:[\s()+-]*\d){3,}", "<number omitted>", text)
+    text = minimize(text)
     # Drop an overlong turn as a unit; do not pretend a chopped clause is complete.
     return text if len(text) <= 1500 else ""
 
 
-@dataclass
+@dataclass(slots=True)
 class ConversationState:
     session_id: str | None = field(default=None, repr=False)
     context: PolicyContext = field(default_factory=PolicyContext, repr=False)
@@ -72,11 +72,6 @@ class ConversationState:
     awaiting: tuple[str, ...] = ()
     turns: int = 0
     recent_customer_messages: deque = field(default_factory=lambda: deque(maxlen=4), repr=False)
-
-    @property
-    def verification_status(self) -> str:
-        return "not_connected"  # No setter, proof counter, or verified order exists in Phase 10.
-
 
 class ConversationalAgent:
     def __init__(self, index: SearchIndex, model: StructuredModel, reference_date: date,
@@ -88,14 +83,13 @@ class ConversationalAgent:
         category = self.engine.validate_context(context)
         if context.sku:
             context = replace(context, category=category)
-        # Reuse the answering layer's configuration validation without a model call.
-        GroundedAgent(index, model, reference_date, top_k=top_k, reply_language=reply_language)
+        validate_answer_options(top_k, reply_language)
         self.state = ConversationState(context=context, language=reply_language)
         self.state.awaiting = self._required(context)
         self.last_trace = GroundingTrace()
 
     def configuration(self) -> dict:
-        return {**GroundedAgent(self.index, self.model, self.reference_date, top_k=self.top_k).configuration(),
+        return {**grounded_configuration(self.index, self.top_k, self.default_language),
                 "conversation_version": CONVERSATION_VERSION, "memory_prompt_sha256": MEMORY_PROMPT_SHA256,
                 "memory_customer_turn_limit": 4, "memory_turn_character_limit": 1500,
                 "external_history_trusted": False, "customer_memory_forwarded": True,
@@ -241,7 +235,8 @@ class ConversationalAgent:
                       "category": "Please ek product category batayein, jaise electronics ya fashion."},
         }
         self.last_trace = GroundingTrace("fallback", "conversation_" + reason)
-        return AgentResponse("clarify", labels[language][reason], language)
+        reply = ask_for_context(("category",), language) if reason == "category" else labels[language][reason]
+        return AgentResponse("clarify", reply, language)
 
     def respond(self, request: AgentRequest) -> AgentResponse:
         self.last_trace = GroundingTrace()
@@ -279,7 +274,8 @@ class ConversationalAgent:
         if context.sku:
             query += "\nPublic SKU: " + context.sku
         agent = GroundedAgent(self.index, self.model, self.reference_date, context=context, top_k=self.top_k,
-                              reply_language=language, prior_customer_messages=prior, retrieval_query=query)
+                              reply_language=language, prior_customer_messages=prior, retrieval_query=query,
+                              engine=self.engine)
         try:
             result = agent.respond(AgentRequest(request.session_id, request.message))
         finally:

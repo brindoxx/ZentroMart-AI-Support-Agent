@@ -12,6 +12,8 @@ import math
 from pathlib import Path
 import unicodedata
 from typing import Protocol
+from collections.abc import Mapping
+from types import MappingProxyType
 
 from .dataset import read_table, require_columns
 from .ingestion import build_corpus
@@ -51,7 +53,24 @@ class SearchDocument:
     title: str
     text: str
     source: str
-    metadata: dict[str, str | int | None]
+    metadata: Mapping[str, str | int | None]
+
+    def __post_init__(self):
+        copied = dict(self.metadata)
+        if any(not isinstance(key, str) or type(value) not in (str, int, type(None)) for key, value in copied.items()):
+            raise TypeError("Search metadata must contain scalar string/integer/null values")
+        object.__setattr__(self, "metadata", MappingProxyType(copied))
+
+    def to_dict(self):
+        return {"evidence_id": self.evidence_id, "title": self.title, "text": self.text,
+                "source": self.source, "metadata": dict(self.metadata)}
+
+    def __reduce__(self):
+        # Streamlit's public-data cache uses pickle; mappingproxy itself is not picklable.
+        return (type(self), (self.evidence_id, self.title, self.text, self.source, dict(self.metadata)))
+
+    def __deepcopy__(self, memo):
+        return self  # All fields, including metadata values, are immutable scalars.
 
 
 @dataclass(frozen=True)
@@ -65,7 +84,7 @@ class SearchHit:
     def to_dict(self) -> dict:
         return {"evidence_id": self.document.evidence_id, "score": self.score,
                 "title": self.document.title, "source": self.document.source,
-                "metadata": self.document.metadata, "matched_terms": self.term_scores,
+                "metadata": dict(self.document.metadata), "matched_terms": self.term_scores,
                 "text": self.document.text, "score_kind": self.score_kind,
                 "components": self.components}
 
@@ -86,7 +105,7 @@ def prepare_documents(documents: list[SearchDocument]) -> tuple[SearchDocument, 
 
 
 def corpus_fingerprint(documents: tuple[SearchDocument, ...]) -> str:
-    payload = json.dumps([asdict(doc) for doc in documents], sort_keys=True,
+    payload = json.dumps([doc.to_dict() for doc in documents], sort_keys=True,
                          ensure_ascii=False).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
 

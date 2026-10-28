@@ -1,0 +1,2 @@
+# Lightweight offline data, BM25, and policy tooling (no UI/model SDK).
+-e .

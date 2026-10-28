@@ -155,6 +155,8 @@ with st.sidebar:
 if voice_enabled:
     with st.expander(labels["voice_title"], expanded=True):
         st.caption(labels["voice_note"])
+        if st.session_state.voice_session.blocked:
+            st.button(labels["voice_retry"], key="voice_retry", on_click=st.session_state.voice_session.resume)
         waiting = session.agent.state.phase == "proof"
         recording = st.audio_input(labels["record"], sample_rate=16000,
                                    key=f"recording_{st.session_state.recording_number}", disabled=waiting)
@@ -210,7 +212,7 @@ for message in session.messages:
     with st.chat_message(message["role"]):
         # Plain text prevents model/customer Markdown from fetching remote images.
         st.text(message["text"])
-        if message["role"] == "assistant" and message.get("path") in {"gemini", "local", "fallback"}:
+        if message["role"] == "assistant" and message.get("path") in {"gemini", "local", "fallback", "clarification"}:
             st.caption(labels[message["path"]])
         if message["evidence"]:
             with st.expander(labels["sources"]):

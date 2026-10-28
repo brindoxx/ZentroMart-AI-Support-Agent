@@ -81,9 +81,9 @@ class GroundingTests(unittest.TestCase):
         self.assertEqual(agent.last_trace.reason, "no_evidence")
 
     def test_missing_scenario_facts_are_requested_before_generation(self):
-        for context, expected in ((PolicyContext("return_window"), "product category"),
+        for context, expected in ((PolicyContext("return_window"), "what item"),
                                   (PolicyContext("return_window", category="electronics"), "delivery date"),
-                                  (PolicyContext("return_window", category="fashion"), "order placement date")):
+                                  (PolicyContext("return_window", category="fashion"), "order date")):
             with self.subTest(context=context):
                 model = self.model()
                 agent = self.agent(model, context=context)
@@ -157,7 +157,7 @@ class GroundingTests(unittest.TestCase):
         agent = self.agent(context=PolicyContext("return_window"))
         result = agent.respond(AgentRequest("s", "रिटर्न की जानकारी चाहिए"))
         self.assertEqual(result.language, "hi")
-        self.assertIn("श्रेणी", result.reply)
+        self.assertIn("सामान", result.reply)
 
     def test_long_customer_input_and_oversized_evidence_fail_without_truncation(self):
         model = self.model()

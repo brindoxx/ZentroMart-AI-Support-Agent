@@ -214,7 +214,7 @@ class PolicyEngine:
                              "origins": sorted(origins[identifier]), "retrieval_rank": ranks.get(identifier),
                              "retrieval_score": scores.get(identifier), "source": doc.source,
                              "retrieval_score_kind": score_kinds.get(identifier),
-                             "metadata": metadata, "text": doc.text})
+                             "metadata": dict(metadata), "text": doc.text})
         # Order only the retrieved passages plus explicit topic/dependency sources.
         # Do not globally promote unrelated policies from a larger candidate pool.
         priority = {identifier: rank for rank, identifier in enumerate(anchors)}

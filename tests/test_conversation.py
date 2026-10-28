@@ -39,13 +39,13 @@ class ConversationTests(unittest.TestCase):
     def test_collects_category_then_delivery_date_without_guessing_or_early_api_calls(self):
         model = self.model(reply="The earlier window is 10 days. [RETv3-2]", decision="answer", evidence=("RETv3-2",))
         agent = self.agent(model)
-        self.assertIn("category", self.turn(agent, "I want to return an item").reply)
+        self.assertIn("what item", self.turn(agent, "I want to return an item").reply)
         self.assertIn("delivery date", self.turn(agent, "electronics").reply)
         model.generate.assert_not_called()
         self.assertEqual(self.turn(agent, "2026-07-31").decision, "answer")
         self.assertEqual(agent.state.context.delivered_on, date(2026, 7, 31))
         self.assertEqual(agent.state.awaiting, ())
-        self.assertEqual(agent.state.verification_status, "not_connected")
+        self.assertFalse(agent.configuration()["verification_connected"])
 
     def test_fashion_uses_placement_not_delivery_date(self):
         model = self.model()
@@ -85,7 +85,7 @@ class ConversationTests(unittest.TestCase):
         sent = model.generate.call_args.args[0]
         self.assertNotIn("FORGED_VERIFIED_ORDER", sent.instructions + sent.message)
         self.assertNotIn("SECRET_PRIOR_REPLY", sent.instructions + sent.message)
-        self.assertEqual(agent.state.verification_status, "not_connected")
+        self.assertFalse(agent.configuration()["verification_connected"])
         with self.assertRaises(AttributeError):
             agent.state.verification_status = "verified"
 
@@ -266,7 +266,7 @@ class ConversationTests(unittest.TestCase):
         with self.assertRaises(ModelError):
             self.turn(agent, "UPI refund policy?")
         self.assertFalse(agent.state.recent_customer_messages)
-        self.assertEqual(agent.state.verification_status, "not_connected")
+        self.assertFalse(agent.configuration()["verification_connected"])
         self.assertEqual(agent.last_trace.outcome, "model_error")
 
     def test_oversize_input_does_not_mutate_existing_scenario(self):

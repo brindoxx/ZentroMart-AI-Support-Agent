@@ -108,8 +108,8 @@ class VoiceTests(unittest.TestCase):
         with patch("zentromart.voice.load_voice_key", side_effect=VoiceError("not_configured")):
             with self.assertRaises(VoiceError):
                 session.run("transcribe", recording(), "en")
-        with self.assertRaisesRegex(VoiceError, "paused"):
-            session.run("transcribe", recording(), "en")
+        self.assertFalse(session.blocked)
+        self.assertEqual(session.attempts, 0)
         self.assertNotIn("SECRET", repr(GnaniSpeech("SECRET")))
 
     def test_budget_no_automatic_retry_and_invalid_text(self):

@@ -1,12 +1,12 @@
 """Per-browser application state; no Streamlit dependency or transcript persistence."""
 
 from dataclasses import dataclass, field
-import re
 from uuid import uuid4
 
 from .config import load_llm_settings
 from .contracts import AgentRequest
 from .llm import GeminiModel, ModelError
+from .privacy import minimize
 
 
 class PublicAccessError(RuntimeError):
@@ -41,10 +41,7 @@ class ConsentModel:
 
 def display_message(text):
     """Minimize user display history; not a production PII detector."""
-    text = re.sub(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", "[email hidden]", text)
-    text = re.sub(r"https?://\S+", "[link hidden]", text)
-    text = re.sub(r"\d(?:[\s()+-]*\d){3,}", "[number hidden]", text)
-    return text[:2000]
+    return minimize(text, number="[number hidden]", email="[email hidden]", url="[link hidden]")[:2000]
 
 
 @dataclass
@@ -79,6 +76,8 @@ class BrowserSession:
             response = self.agent.respond(AgentRequest(self.identifier, message))
             trace = self.agent.last_trace
             path = "gemini" if trace.outcome == "accepted" else "fallback" if trace.outcome == "fallback" else "local"
+            if trace.reason in {"needs_context", "conversation_category", "conversation_date_format"}:
+                path = "clarification"
             # Show sources separately, not machine-oriented citation brackets inside chat prose.
             displayed = response.reply
             for identifier in response.evidence:
@@ -87,6 +86,6 @@ class BrowserSession:
                                   "path": path, "language": response.language})
         finally:
             # Never retain the last executor's proof arguments in UI session state.
-            self.agent._calls = []
+            self.agent.clear_tool_trace()
             self.messages[:] = self.messages[-24:]
         # No AgentResponse/tool traces are retained or returned to the page.

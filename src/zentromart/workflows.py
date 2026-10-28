@@ -58,8 +58,8 @@ class WorkflowState:
     requested_sku: str | None = field(default=None, repr=False)
     requested_reason: str | None = None
     refund_not_received: bool = False
-    failures: dict = field(default_factory=dict, repr=False)
-    ticket_ledger: dict = field(default_factory=dict, repr=False)
+    failures: dict[str, int] = field(default_factory=dict, repr=False)
+    ticket_ledger: dict[str, str | None] = field(default_factory=dict, repr=False)
 
     @property
     def verified(self):
@@ -92,9 +92,13 @@ class SupportAgent:
         self.public.default_language = language
         self.public.state.language = language
 
+    def clear_tool_trace(self):
+        """Discard ephemeral executor arguments after UI consumption."""
+        self._calls.clear()
+
     def configuration(self):
         import hashlib
-        return {**self.public.configuration(), "workflow_version": "zentromart-support-v3",
+        return {**self.public.configuration(), "workflow_version": "zentromart-support-v4",
                 "calculation_version": RULE_VERSION, "calculation_policy_sha256": POLICY_SHA256,
                 "verification_connected": True, "authentication_kind": "synthetic_mock_only",
                 "private_data_sent_to_model": False, "ticket_writes_enabled": self.allow_ticket_writes,
@@ -133,7 +137,7 @@ class SupportAgent:
     def _public_reply(self, request):
         text = request.message.strip()
         numeric_only = bool(re.fullmatch(r"[+()0-9\s-]{4,}", text)) and not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", text)
-        labeled_proof = re.search(r"[0-9]", text) and re.search(r"phone|mobile|pincode|pin\b|suffix|last (?:four|4)|फ़ोन|फोन|पिनकोड|आखिरी.{0,12}अंक", text, re.I)
+        labeled_proof = re.search(r"[0-9]", text) and re.search(r"\b(?:phone|mobile|pincode|pin|suffix)\b|last (?:four|4)|फ़ोन|फोन|पिनकोड|आखिरी.{0,12}अंक", text, re.I)
         if numeric_only or labeled_proof or re.search(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", text):
             return self._reply("clarify", "Please keep phone numbers, pincodes and verification values out of public-policy questions.", reason="public_privacy_guard")
         self.public.state.language = self.language
