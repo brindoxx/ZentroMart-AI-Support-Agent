@@ -17,7 +17,8 @@ Gemini now generates public-policy replies with source-ID checks, safe
 clarification fallbacks, and an opt-in memory-backed conversation mode. Verified
 mock order lookup, deterministic calculations, and opt-in local handover tickets
 are now available in a Streamlit-only frontend with English, Hindi, and Hinglish
-reply preferences. Gnani voice support is planned next.
+reply preferences. Gnani WebSocket voice is implemented with offline tests;
+live recording/playback verification is still pending.
 
 The planned agent will answer from company policies, verify callers before
 showing order details, create handover tickets, and support English, Hindi,
@@ -296,6 +297,33 @@ The native theme uses Streamlit configuration, not a separate frontend framework
 or injected CSS. See the [Phase 12 learning guide](docs/phase-12-streamlit-and-languages.md)
 for the design, language rules, tests, and limitations.
 
+## Guided demos and optional voice
+
+Enable **Use guided demo orders** to see four invented tutorial scenarios and
+their public test credentials. They use a separate gateway, not private rows
+from the supplied dataset. Start an example, enter its displayed test suffix in
+the masked form, and ask the suggested follow-up. Verification is not bypassed.
+Demo tickets, when explicitly enabled, go to `artifacts/demo-tickets/`.
+
+Greetings now receive a friendly local reply instead of a retrieval error. Reply
+captions identify Gemini-generated policy answers, local workflows, and safe
+fallbacks. Inline citation brackets are moved into the source panel for display;
+the backend still retains and evaluates the original evidence IDs.
+
+For voice, install `requirements-voice.txt`, restart Streamlit, and enable
+**Gnani voice**. Your existing `GNANI_API_KEY` in `.env` is read only when needed.
+Record at most 15 seconds, click transcribe, review/edit the transcript, then send
+it. Reading the latest reply aloud is a separate explicit action. Both use Gnani
+credits; nothing is automatically recorded, submitted or played. Voice is disabled
+during verification; type proofs in the masked form. Selected replies sent to TTS
+may contain verified order details, as disclosed by the voice consent control.
+
+There are 20 voice attempts per browser session, 800 characters per spoken reply,
+no automatic retries, and no transcript/audio files saved by the voice adapter.
+Clear/source/language changes discard pending audio and drafts, not usage limits.
+The adapter was tested with simulated services, **not your live Gnani account**.
+See the [Phase 13 guide and five-minute demo](docs/phase-13-voice-and-guided-demo.md).
+
 ## Remaining roadmap
 
 The former 11 remaining phases are consolidated into five larger phases, leaving
@@ -305,8 +333,8 @@ more time to test and improve each part:
 | --- | --- | --- |
 | 11 (old 11–13) | Verified order workflows, handover tickets, deterministic calculations | Complete |
 | 12 (old 14–15) | Multilingual replies and Streamlit web interface | Complete |
-| 13 (old 16–17) | Gnani speech input/output and voice workflow | Next |
-| 14 (old 18–19) | Expanded evaluation, failure analysis, and improvements | Planned |
+| 13 (old 16–17) | Gnani speech input/output and voice workflow | Implemented; live check pending |
+| 14 (old 18–19) | Expanded evaluation, failure analysis, and improvements | Next |
 | 15 (old 20–21) | Deployment, report, demonstration, and release preparation | Planned |
 
 Phases 1–10 remain documented separately in `docs/`. The repository stays private
