@@ -83,4 +83,3 @@ class BrowserSession:
             self.agent._calls = []
             self.messages[:] = self.messages[-24:]
         # No AgentResponse/tool traces are retained or returned to the page.
-
