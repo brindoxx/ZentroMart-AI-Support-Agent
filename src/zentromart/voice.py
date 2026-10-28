@@ -13,6 +13,7 @@ import json
 import os
 import re
 import wave
+from threading import Lock
 
 from dotenv import dotenv_values
 from .config import PROJECT_ROOT
@@ -175,6 +176,18 @@ class VoiceSession:
         self.attempts = 0
         self.limit = 20
         self.blocked = False
+        self._lock = Lock()
+
+    def reserve(self):
+        """Atomically reserve one shared speech request, including live capture."""
+        with self._lock:
+            if self.enabled is not True:
+                raise VoiceError("consent_required")
+            if self.blocked or self.attempts >= self.limit:
+                raise VoiceError("paused")
+            key = load_voice_key()
+            self.attempts += 1
+            return key
 
     def resume(self):
         """Explicit user retry after fixing access; never renew the budget."""
@@ -194,8 +207,7 @@ class VoiceSession:
             pcm_from_wav(value)
         elif not isinstance(value, str) or not 1 <= len(value) <= 800:
             raise VoiceError("invalid_text")
-        key = load_voice_key()  # A corrected local key can be retried without reloading.
-        self.attempts += 1
+        key = self.reserve()
         try:
             client = GnaniSpeech(key)
             return asyncio.run(getattr(client, action)(value, language))
