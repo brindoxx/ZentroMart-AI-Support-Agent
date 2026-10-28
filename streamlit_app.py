@@ -12,6 +12,7 @@ from zentromart.web_session import BrowserSession, ConsentModel, PublicAccessErr
 from zentromart.workflows import SupportAgent
 from zentromart.demo import DemoGateway, SCENARIOS
 from zentromart.voice import VoiceSession, VoiceError
+from zentromart.voice_conversation import VoiceConversation, VoiceTurnError
 
 
 st.set_page_config(page_title="ZentroMart | Support", page_icon=":material/support_agent:", layout="centered")
@@ -41,6 +42,7 @@ def handle_message(message, *, proof=False):
     session = st.session_state.support
     st.session_state.notice = None
     st.session_state.voice_audio = None
+    st.session_state.voice_autoplay = False
     try:
         session.submit(message, proof=proof)
     except PublicAccessError as error:
@@ -65,7 +67,10 @@ def clear_conversation():
 
 
 def clear_voice():
+    if "voice_conversation" in st.session_state:
+        st.session_state.voice_conversation.stop()
     st.session_state.voice_audio = None
+    st.session_state.voice_autoplay = False
     st.session_state.voice_notice = None
     st.session_state.voice_draft = ""
     st.session_state.recording_number = st.session_state.get("recording_number", 0) + 1
@@ -74,6 +79,7 @@ def clear_voice():
 def handle_voice(action, value, language):
     """Keep only reviewed error codes; never provider messages or exceptions."""
     st.session_state.voice_notice = None
+    st.session_state.voice_autoplay = False
     target = "voice_draft" if action == "transcribe" else "voice_audio"
     st.session_state[target] = "" if action == "transcribe" else None
     try:
@@ -90,6 +96,38 @@ def handle_voice(action, value, language):
 def retry_voice():
     st.session_state.voice_session.resume()
     st.session_state.voice_notice = None
+
+
+def start_voice_conversation():
+    clear_voice()
+    if (st.session_state.voice_enabled is True and st.session_state.cloud is True
+            and st.session_state.support.agent.state.phase not in {"proof", "locked"}):
+        st.session_state.voice_conversation.start()
+
+
+def automatic_voice_turn(turn_id, audio, language):
+    st.session_state.notice = None
+    st.session_state.voice_notice = None
+    st.session_state.voice_audio = None
+    st.session_state.voice_autoplay = False
+    mode = st.session_state.voice_conversation
+    stages = {"transcribe": "voice_transcribing", "assistant": "voice_assistant", "synthesize": "voice_synthesizing"}
+    with st.status(labels["voice_transcribing"], expanded=False) as progress:
+        try:
+            output = mode.run(turn_id, audio, st.session_state.support, st.session_state.voice_session, language,
+                              lambda stage: progress.update(label=labels[stages[stage]]))
+            st.session_state.voice_audio = output
+            st.session_state.voice_autoplay = output is not None
+            progress.update(label=labels["voice_ready" if mode.active else "voice_proof_required"], state="complete")
+        except VoiceTurnError as error:
+            if error.stage == "assistant":
+                st.session_state.notice = error.code
+            else:
+                st.session_state.voice_notice = (error.stage, error.code)
+            progress.update(label=labels["voice_mode_paused"], state="error")
+        finally:
+            # A fresh recorder event, not the previous audio, starts the next turn.
+            st.session_state.recording_number += 1
 
 
 def send_voice_message():
@@ -114,7 +152,9 @@ st.session_state.setdefault("demo", False)
 st.session_state.setdefault("support_sessions", {})
 st.session_state.setdefault("voice_enabled", False)
 st.session_state.setdefault("voice_session", VoiceSession())
+st.session_state.setdefault("voice_conversation", VoiceConversation())
 st.session_state.setdefault("voice_audio", None)
+st.session_state.setdefault("voice_autoplay", False)
 st.session_state.setdefault("voice_notice", None)
 st.session_state.setdefault("voice_draft", "")
 st.session_state.setdefault("recording_number", 0)
@@ -129,7 +169,7 @@ with st.sidebar:
         st.stop()
     labels = TEXT[language]
     st.caption(labels["settings"])
-    cloud = st.checkbox(labels["cloud"], key="cloud", help=labels["cloud_help"])
+    cloud = st.checkbox(labels["cloud"], key="cloud", help=labels["cloud_help"], on_change=clear_voice)
     tickets = st.checkbox(labels["tickets"], key="tickets", help=labels["ticket_help"])
     demo = st.checkbox(labels["demo"], key="demo", on_change=change_source)
     voice_enabled = st.checkbox(labels["voice"], key="voice_enabled", help=labels["voice_help"], on_change=clear_voice)
@@ -176,36 +216,64 @@ with st.sidebar:
     st.caption(labels["snapshot"])
 
 if voice_enabled:
-    with st.expander(labels["voice_title"], expanded=True):
-        st.caption(labels["voice_note"])
+    with st.expander(labels["voice_modes"], expanded=True):
         waiting = session.agent.state.phase == "proof"
-        recording = st.audio_input(labels["record"], sample_rate=16000,
-                                   key=f"recording_{st.session_state.recording_number}", disabled=waiting)
+        mode = st.session_state.voice_conversation
+        can_start = (cloud is True and session.agent.state.phase not in {"proof", "locked"}
+                     and not session.model.blocked and session.model.limit - session.model.calls >= 2
+                     and not st.session_state.voice_session.blocked
+                     and st.session_state.voice_session.limit - st.session_state.voice_session.attempts >= 2)
+        st.caption(labels["voice_mode_note"])
+        if mode.active:
+            st.button(labels["voice_end"], key="voice_end", on_click=clear_voice, icon=":material/stop_circle:")
+            st.caption(labels["voice_turn_note"])
+            key = f"conversation_recording_{st.session_state.recording_number}"
+            recording = st.audio_input(labels["voice_turn_record"], sample_rate=16000, key=key, disabled=not can_start)
+            if recording is not None:
+                automatic_voice_turn(key, recording.getvalue(), language)
+                st.rerun()
+        else:
+            st.button(labels["voice_start"], key="voice_start", on_click=start_voice_conversation,
+                      disabled=not can_start, icon=":material/graphic_eq:")
+            st.caption(labels["dictation_title"])
+            st.caption(labels["voice_note"])
+            recording = st.audio_input(labels["record"], sample_rate=16000,
+                                       key=f"recording_{st.session_state.recording_number}", disabled=waiting)
+        if not can_start:
+            st.caption(labels["voice_mode_unavailable"])
+        if mode.phase in {"verification", "paused"}:
+            st.info(labels["voice_proof_required" if mode.phase == "verification" else "voice_mode_paused"])
         with st.expander(labels["mic_help"]):
             st.caption(labels["mic_note"])
             st.button(labels["recorder_reset"], key="recorder_reset", on_click=clear_voice, disabled=waiting)
             uploaded = st.file_uploader(labels["upload_wav"], type=["wav"], max_upload_size=1,
-                                        key=f"voice_upload_{st.session_state.recording_number}", disabled=waiting)
-        clip = uploaded if uploaded is not None else recording
-        if st.button(labels["transcribe"], key="transcribe", disabled=waiting or clip is None):
-            handle_voice("transcribe", clip.getvalue(), language)
-        st.text_area(labels["draft"], key="voice_draft", max_chars=4000, disabled=waiting)
-        st.button(labels["send_voice"], key="send_voice", on_click=send_voice_message,
-                  disabled=waiting or not st.session_state.voice_draft.strip())
+                                        key=f"voice_upload_{st.session_state.recording_number}", disabled=waiting or mode.active)
+        if not mode.active:
+            clip = uploaded if uploaded is not None else recording
+            if st.button(labels["transcribe"], key="transcribe", disabled=waiting or clip is None):
+                handle_voice("transcribe", clip.getvalue(), language)
+            st.text_area(labels["draft"], key="voice_draft", max_chars=4000, disabled=waiting)
+            st.button(labels["send_voice"], key="send_voice", on_click=send_voice_message,
+                      disabled=waiting or not st.session_state.voice_draft.strip())
         latest = session.messages[-1] if session.messages and session.messages[-1]["role"] == "assistant" else None
-        if st.button(labels["speak"], key="speak", disabled=waiting or latest is None or len(latest["text"]) > 800):
+        if st.button(labels["speak"], key="speak", disabled=mode.active or waiting or latest is None or len(latest["text"]) > 800):
             handle_voice("synthesize", latest["text"], latest.get("language", language))
-        if st.button(labels["test_speech"], key="test_speech", disabled=waiting):
+        if st.button(labels["test_speech"], key="test_speech", disabled=waiting or mode.active):
             handle_voice("synthesize", {"en": "Hello. This is a ZentroMart voice test.",
                                        "hi": "नमस्ते। यह ज़ेंट्रोमार्ट की आवाज़ का परीक्षण है।",
                                        "hi-en": "Namaste. Yeh ZentroMart ka voice test hai."}[language], language)
         if st.session_state.voice_notice:
             action, code = st.session_state.voice_notice
-            st.warning(labels["stt_error" if action == "transcribe" else "tts_error"] + " " + labels["voice_" + code])
+            if action == "verification":
+                st.warning(labels["voice_proof_required"])
+            else:
+                st.warning(labels["stt_error" if action == "transcribe" else "tts_error"] + " " + labels["voice_" + code])
         if st.session_state.voice_session.blocked:
             st.button(labels["voice_retry"], key="voice_retry", on_click=retry_voice, disabled=waiting)
         if st.session_state.voice_audio:
-            st.audio(st.session_state.voice_audio, format="audio/wav", alt=labels["speak"])
+            st.audio(st.session_state.voice_audio, format="audio/wav", alt=labels["speak"],
+                     autoplay=st.session_state.voice_autoplay)
+            st.session_state.voice_autoplay = False  # Request playback once, not on unrelated reruns.
 
 if demo:
     with st.expander(labels["demo_title"], expanded=True):
@@ -218,7 +286,7 @@ if demo:
         st.text(f"Order ID: {case['id']} · {labels['demo_proof']}: {case['proof']}")
         st.caption(labels["demo_steps"])
         st.text(f"Then: {case['followup']}")
-        if st.button(labels["demo_start"], key="demo_start", disabled=session.agent.state.phase == "proof"):
+        if st.button(labels["demo_start"], key="demo_start", disabled=session.agent.state.phase == "proof" or st.session_state.voice_conversation.active):
             session.clear()
             handle_message(case["question"] + " Order " + case["id"])
             st.rerun()
@@ -259,12 +327,13 @@ if session.agent.state.phase == "proof":
                               type="primary", icon=":material/lock:", width="stretch")
 else:
     if st.button(labels["human"], key="human", icon=":material/support_agent:"):
+        clear_voice()
         handle_message("/human")
         st.rerun()
 
 st.caption(labels["commands"])
 prompt = st.chat_input(labels["prompt"], key="chat", max_chars=12000,
-                       disabled=session.agent.state.phase == "proof", submit_mode="disable")
+                       disabled=session.agent.state.phase == "proof" or st.session_state.voice_conversation.active, submit_mode="disable")
 if prompt:
     with st.spinner(labels["busy"]):
         handle_message(prompt)

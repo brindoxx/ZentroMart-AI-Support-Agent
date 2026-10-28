@@ -54,6 +54,40 @@ TEXT = {
     },
 }
 
+for language, values in {
+    "en": {"voice_modes": "Microphone and voice conversation", "dictation_title": "Mic / dictation · review before sending",
+           "voice_start": "Start voice conversation", "voice_end": "End voice conversation",
+           "voice_mode_note": "Voice mode automatically sends each completed recording to Gnani, submits its transcript to the assistant, then sends the reply to Gnani and attempts playback. Replies may contain verified synthetic order details. There is no transcript review before sending. Each normal turn uses two voice attempts plus Gemini calls. Synthetic data only; never speak verification proofs.",
+           "voice_turn_note": "Record, speak, then stop the recording. The reply is generated and spoken automatically; record again for your next turn. This is turn-based—not continuous listening or interruptible live speech. End voice mode to type. If playback is blocked by your browser, press Play.",
+           "voice_turn_record": "Your turn · record and stop to send (up to 15 seconds)",
+           "voice_mode_unavailable": "Voice conversation needs Gemini enabled, available model/voice budgets, an unpaused voice connection, and no pending verification. Use the retry control after fixing a voice connection error.",
+           "voice_transcribing": "Transcribing your voice…", "voice_assistant": "Getting the assistant's reply…", "voice_synthesizing": "Generating spoken reply…",
+           "voice_ready": "Ready for your next voice turn", "voice_mode_paused": "Voice conversation paused. Your written reply, if available, remains in chat. Fix the error, then start voice mode again; the failed turn will not be resent automatically.",
+           "voice_proof_required": "Voice mode is paused for verification. Never speak proof values; use the masked typed field. After verification, start voice mode again.",
+           "voice_consent_required": "Voice access was turned off. Enable it before starting another turn."},
+    "hi": {"voice_modes": "माइक्रोफ़ोन और आवाज़ में बातचीत", "dictation_title": "माइक / डिक्टेशन · भेजने से पहले जाँचें",
+           "voice_start": "आवाज़ में बातचीत शुरू करें", "voice_end": "आवाज़ में बातचीत बंद करें",
+           "voice_mode_note": "वॉइस मोड में रिकॉर्डिंग अपने आप Gnani को, उसका पाठ सहायक को, और जवाब बोलने के लिए Gnani को भेजा जाता है। जवाब में सत्यापित सिंथेटिक ऑर्डर की जानकारी हो सकती है। भेजने से पहले पाठ जाँचने का चरण नहीं है। सामान्य टर्न में दो वॉइस प्रयास और Gemini कॉल लगते हैं। केवल सिंथेटिक डेटा इस्तेमाल करें; सत्यापन अंक न बोलें।",
+           "voice_turn_note": "रिकॉर्ड करें, बोलें और रिकॉर्डिंग रोकें। जवाब अपने आप बनेगा और सुनाया जाएगा। अगले सवाल के लिए फिर रिकॉर्ड करें। यह बारी-बारी की बातचीत है—लगातार सुनना या बीच में रोककर बोलना नहीं। टाइप करने के लिए वॉइस मोड बंद करें। अपने आप न बजे तो Play दबाएँ।",
+           "voice_turn_record": "आपकी बारी · भेजने के लिए रिकॉर्डिंग रोकें (अधिकतम 15 सेकंड)",
+           "voice_mode_unavailable": "Gemini चालू हो, मॉडल व आवाज़ की सीमा बची हो, कनेक्शन रुका न हो और सत्यापन लंबित न हो। कनेक्शन ठीक करके पुनः प्रयास का बटन दबाएँ।",
+           "voice_transcribing": "आवाज़ को पाठ में बदल रहे हैं…", "voice_assistant": "सहायक का जवाब तैयार हो रहा है…", "voice_synthesizing": "बोलने के लिए ऑडियो बना रहे हैं…",
+           "voice_ready": "अगले वॉइस टर्न के लिए तैयार", "voice_mode_paused": "वॉइस बातचीत रुकी है। उपलब्ध लिखित जवाब चैट में है। त्रुटि ठीक करके फिर शुरू करें; पिछला टर्न अपने आप दोबारा नहीं भेजा जाएगा।",
+           "voice_proof_required": "सत्यापन के लिए वॉइस मोड रुका है। अंक न बोलें; छिपे टाइपिंग फ़ील्ड का उपयोग करें। सत्यापन के बाद वॉइस मोड फिर शुरू करें।",
+           "voice_consent_required": "आवाज़ की अनुमति बंद है। अगले टर्न से पहले चालू करें।"},
+    "hi-en": {"voice_modes": "Microphone aur voice conversation", "dictation_title": "Mic / dictation · bhejne se pehle review karein",
+              "voice_start": "Voice conversation shuru karein", "voice_end": "Voice conversation band karein",
+              "voice_mode_note": "Voice mode mein completed recording automatically Gnani ko, transcript assistant ko aur reply speech ke liye Gnani ko jaata hai. Reply mein verified synthetic order details ho sakti hain. Bhejne se pehle transcript review nahi hota. Normal turn mein do voice attempts aur Gemini calls lagte hain. Synthetic data hi use karein; verification proof mat bolein.",
+              "voice_turn_note": "Record karein, bolein aur recording stop karein. Reply automatically banega aur sunaya jayega. Next turn ke liye phir record karein. Yeh turn-based hai—continuous listening ya beech mein interrupt karna nahi. Type karne ke liye voice mode end karein. Browser autoplay roke toh Play dabayein.",
+              "voice_turn_record": "Aapki baari · send karne ke liye recording stop karein (maximum 15 seconds)",
+              "voice_mode_unavailable": "Gemini enabled, model/voice budget available, voice connection unpaused aur verification pending na ho. Connection fix karke retry button use karein.",
+              "voice_transcribing": "Aapki voice transcribe ho rahi hai…", "voice_assistant": "Assistant ka reply aa raha hai…", "voice_synthesizing": "Spoken reply ban raha hai…",
+              "voice_ready": "Agli voice turn ke liye ready", "voice_mode_paused": "Voice conversation paused hai. Available written reply chat mein hai. Error fix karke phir start karein; failed turn automatically resend nahi hogi.",
+              "voice_proof_required": "Verification ke liye voice mode paused hai. Proof mat bolein; masked typed field use karein. Verify hone ke baad voice mode phir start karein.",
+              "voice_consent_required": "Voice access off hai. Agli turn se pehle enable karein."},
+}.items():
+    TEXT[language].update(values)
+
 # One shared generation budget covers both dialogue planning and grounded answers.
 for language, values in {
     "en": {"cloud": "Use Gemini for natural conversation",
@@ -132,15 +166,15 @@ for language, values in {
     TEXT[language].update(values)
 
 for language, values in {
-    "en": {"voice": "Enable Gnani voice (uses credits)", "voice_help": "Audio and replies you choose to speak are sent to Gnani, including order details in a selected reply. Never speak verification proofs or real personal data. Maximum 20 voice attempts per browser session.",
+    "en": {"voice": "Enable Gnani voice (uses credits)", "voice_help": "Audio and spoken replies are sent to Gnani, including verified order details in a reply. Dictation is reviewed before sending; starting voice conversation enables automatic submission and spoken replies. Never speak verification proofs or real personal data. Maximum 20 voice attempts per browser session.",
            "voice_title": "Voice · record, review, send", "record": "Record a short question (up to 15 seconds)", "transcribe": "Transcribe with Gnani", "draft": "Review or edit what you said", "send_voice": "Send reviewed message",
            "speak": "Read latest reply aloud", "voice_error": "Voice could not complete. Check the key, credits, clip format or length and try again. If the connection is paused, use Retry voice connection. Nothing was automatically retried.",
            "voice_note": "Verification must be typed in the masked field. Audio stays in memory; no automatic recording, submission or playback. Speech output supports replies up to 800 characters.", "voice_busy": "Contacting Gnani…"},
-    "hi": {"voice": "Gnani आवाज़ चालू करें (क्रेडिट खर्च होंगे)", "voice_help": "ऑडियो और पढ़ने के लिए चुने जवाब Gnani को भेजे जाते हैं; चुने जवाब में ऑर्डर विवरण भी हो सकते हैं। सत्यापन अंक या असली निजी डेटा न बोलें। प्रति सत्र अधिकतम 20 प्रयास।",
+    "hi": {"voice": "Gnani आवाज़ चालू करें (क्रेडिट खर्च होंगे)", "voice_help": "ऑडियो और बोले जाने वाले जवाब Gnani को भेजे जाते हैं; जवाब में सत्यापित ऑर्डर विवरण हो सकते हैं। डिक्टेशन भेजने से पहले जाँचा जाता है; वॉइस बातचीत में भेजना और बोलना अपने आप होता है। सत्यापन अंक या असली निजी डेटा न बोलें। प्रति सत्र अधिकतम 20 प्रयास।",
            "voice_title": "आवाज़ · रिकॉर्ड करें, जाँचें, भेजें", "record": "छोटा सवाल रिकॉर्ड करें (15 सेकंड तक)", "transcribe": "Gnani से लिखित रूप लें", "draft": "सुनी गई बात जाँचें या बदलें", "send_voice": "जाँचा हुआ संदेश भेजें",
            "speak": "आखिरी जवाब सुनें", "voice_error": "आवाज़ प्रक्रिया पूरी नहीं हुई। key, क्रेडिट, रिकॉर्डिंग का फ़ॉर्मैट या अवधि जाँचकर फिर प्रयास करें। कनेक्शन रुका हो तो आवाज़ कनेक्शन फिर आज़माने का बटन दबाएँ। अपने आप दोबारा प्रयास नहीं हुआ।",
            "voice_note": "सत्यापन छिपे फ़ील्ड में टाइप करें। ऑडियो सिर्फ मेमोरी में रहता है; अपने आप रिकॉर्डिंग, भेजना या सुनाना नहीं होता। 800 अक्षरों तक के जवाब सुन सकते हैं।", "voice_busy": "Gnani से संपर्क हो रहा है…"},
-    "hi-en": {"voice": "Gnani voice enable karein (credits lagenge)", "voice_help": "Audio aur speak karne ke liye chosen replies Gnani ko bheje jaate hain, selected reply mein order details bhi ho sakti hain. Verification proof ya real personal data mat bolein. Har session mein maximum 20 attempts.",
+    "hi-en": {"voice": "Gnani voice enable karein (credits lagenge)", "voice_help": "Audio aur spoken replies Gnani ko jaate hain; reply mein verified order details ho sakti hain. Dictation bhejne se pehle review hoti hai; voice conversation mein submission aur spoken replies automatic hain. Verification proof ya real personal data mat bolein. Har session mein maximum 20 attempts.",
               "voice_title": "Voice · record, review, send", "record": "Chhota question record karein (15 seconds tak)", "transcribe": "Gnani se transcribe karein", "draft": "Jo suna gaya use check ya edit karein", "send_voice": "Reviewed message bhejein",
               "speak": "Aakhri reply sunein", "voice_error": "Voice complete nahi hui. Key, credits, format ya length check karke phir try karein. Connection paused ho toh Voice connection phir try karein button use karein. Automatic retry nahi hua.",
               "voice_note": "Verification masked field mein type karein. Audio sirf memory mein rehti hai; automatic recording, sending ya playback nahi hota. 800 characters tak ke replies bol sakte hain.", "voice_busy": "Gnani se connect ho rahe hain…"},

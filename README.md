@@ -324,9 +324,11 @@ and evaluation modes retain their previous behavior for baseline comparisons.
 
 For voice, install `requirements-voice.txt`, restart Streamlit, and enable
 **Gnani voice**. Your existing `GNANI_API_KEY` in `.env` is read only when needed.
-Record at most 15 seconds, click transcribe, review/edit the transcript, then send
-it. Reading the latest reply aloud is a separate explicit action. Both use Gnani
-credits; nothing is automatically recorded, submitted or played. Voice is disabled
+In dictation mode, record at most 15 seconds, click transcribe, review/edit the
+transcript, then send it. Reading the latest reply aloud is a separate explicit
+action in that mode. Both use Gnani credits; dictation does not automatically
+submit or play replies. The optional voice-conversation mode below automates those
+steps after explicit activation. Voice is disabled
 during verification; type proofs in the masked form. Selected replies sent to TTS
 may contain verified order details, as disclosed by the voice consent control.
 
@@ -339,6 +341,20 @@ Microphone capture and Gnani synthesis are separate: recorder errors can happen
 before any Gnani request. The voice panel now includes microphone help/reset,
 a strictly validated WAV-upload alternative, and an explicit speech playback test.
 See the [Phase 13 guide and five-minute demo](docs/phase-13-voice-and-guided-demo.md).
+
+### Voice conversation versus dictation
+
+The mic/dictation path keeps **transcribe -> review -> Send**. For an automatic
+conversation, enable Gemini and Gnani, then click **Start voice conversation**.
+Record and stop a turn: the app runs **STT -> support assistant -> TTS** and
+requests audio playback without extra transcribe/send/speak clicks. Record again
+for the next turn; End restores typing. Browser autoplay may require Play.
+
+This mode is turn-based, not continuous listening, full-duplex audio or barge-in.
+It pauses for typed verification and shares the existing provider budgets.
+Automatic sending and speaking require explicit mode activation. See the
+[voice-conversation guide](docs/voice-conversation.md) for design, privacy,
+failure recovery, costs, tests and the remaining live-service limitations.
 
 ### Review-driven fixes
 
