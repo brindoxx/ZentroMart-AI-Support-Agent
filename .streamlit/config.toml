@@ -9,15 +9,15 @@ gatherUsageStats = false
 [client]
 showErrorDetails = "none"
 
-# Native theme adapted from Streamlit's bundled Fluent template; no remote fonts.
+# Native dark theme adapted from Streamlit's bundled VS Code template; no remote fonts.
 [theme]
-base = "light"
+base = "dark"
 primaryColor = "#0F766E"
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F3F7F6"
-textColor = "#172B2A"
-borderColor = "#D6E2DF"
-linkColor = "#0F766E"
+backgroundColor = "#0E1514"
+secondaryBackgroundColor = "#1A2725"
+textColor = "#E7EFED"
+borderColor = "#3E5953"
+linkColor = "#5EEAD4"
 font = "sans-serif"
 baseRadius = "8px"
 buttonRadius = "8px"
@@ -25,9 +25,9 @@ showWidgetBorder = true
 showSidebarBorder = true
 
 [theme.sidebar]
-backgroundColor = "#F3F7F6"
-secondaryBackgroundColor = "#E7EFED"
-textColor = "#172B2A"
-borderColor = "#D6E2DF"
+backgroundColor = "#121D1B"
+secondaryBackgroundColor = "#22322F"
+textColor = "#E7EFED"
+borderColor = "#3E5953"
 primaryColor = "#0F766E"
-linkColor = "#0F766E"
+linkColor = "#5EEAD4"
