@@ -4,7 +4,7 @@ This is educational synthetic verification, not real authentication. All private
 replies and calculations are deterministic; models cannot choose or execute tools.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date
 import re
 
@@ -15,9 +15,10 @@ from .config import FROZEN_REFERENCE_DATE
 from .conversation import ConversationalAgent, SKU_PATTERN, TOPIC_PATTERNS, normalize
 from .grounding import GroundingTrace
 from .tools import ToolExecutionError, ToolGateway
+from .localization import DIGITS, VERSION as LOCALIZATION_VERSION, TRANSLATION_FALLBACK, choose_language, localize
 
 
-ORDER_ID = re.compile(r"\b(?:order(?:\s+(?:id|number|no\.?))?|/order)\s*[:#-]?\s*([0-9]{4}[ -]?[0-9]{4})(?![0-9])", re.I)
+ORDER_ID = re.compile(r"(?:\border(?:\s+(?:id|number|no\.?))?|/order|ऑर्डर|आर्डर)\s*(?:नंबर|आईडी)?\s*(?:hai|है|is)?\s*[:#-]?\s*([0-9]{4}[ -]?[0-9]{4})(?![0-9])", re.I)
 PROOF = re.compile(r"(?:(?:phone(?:\s+last\s*4)?|last\s*4|pincode|pin|suffix)\s*[:=-]?\s*)?([0-9]{4}|[0-9]{6})", re.I)
 GROUPED_ORDER = re.compile(r"(?<![0-9])([0-9]{4}[ -]?[0-9]{4})(?![0-9])")
 
@@ -29,7 +30,7 @@ def submitted_proof(text: str) -> str | None:
     if re.search(r"\bnot\b|\bnahi\b|नहीं", text, re.I):
         return None
     # Accept conversational labeling, never an arbitrary number plucked from a message.
-    if not re.search(r"\b(?:last\s*(?:four|4)|phone|mobile|pincode|pin|suffix|digits)\b", text, re.I):
+    if not re.search(r"\b(?:last\s*(?:four|4)|phone|mobile|pincode|pin|suffix|digits)\b|पिनकोड|फ़ोन|फोन|आखिरी|अंतिम|अंक", text, re.I):
         return None
     runs = re.findall(r"[0-9]+", text)
     values = [value for value in runs if len(value) in (4, 6)]
@@ -38,10 +39,10 @@ def submitted_proof(text: str) -> str | None:
         return None
     return values[0]
 IMMEDIATE = (
-    ("safety_risk", r"swelling battery|swollen battery|burning smell|\bsparks\b|\binjury\b|battery.{0,15}swelling"),
-    ("unauthorized_activity", r"unauthori[sz]ed|did(?:n't| not) (?:place|make)|not (?:my|mine)"),
-    ("legal_request", r"legal action|consumer court|police complaint"),
-    ("human_requested", r"\bhuman\b|\bsupervisor\b|/human"),
+    ("safety_risk", r"swelling battery|swollen battery|burning smell|\bsparks\b|\binjury\b|battery.{0,15}swelling|बैटरी.{0,15}फूल|जलने की गंध|चिंगारी|battery.{0,15}phool|jalne ki (?:smell|badbu)"),
+    ("unauthorized_activity", r"unauthori[sz]ed|did(?:n't| not) (?:place|make)|not (?:my|mine)|मैंने.{0,15}ऑर्डर नहीं|maine.{0,15}order nahi"),
+    ("legal_request", r"legal action|consumer court|police complaint|कानूनी कार्रवाई|पुलिस शिकायत"),
+    ("human_requested", r"\bhuman\b|\bsupervisor\b|/human|इंसान|सपोर्ट टीम|एजेंट से|agent se baat"),
 )
 
 
@@ -81,14 +82,24 @@ class SupportAgent:
         self.state = WorkflowState()
         self.last_trace = GroundingTrace()
         self._calls = []
+        self.preferred_language = reply_language
+        self.language = reply_language or "en"
+
+    def set_language(self, language):
+        """UI preference changes must not recreate the agent or clear lockouts."""
+        self.language = choose_language("", self.language, language)
+        self.preferred_language = language
+        self.public.default_language = language
+        self.public.state.language = language
 
     def configuration(self):
         import hashlib
-        return {**self.public.configuration(), "workflow_version": "zentromart-support-v1",
+        return {**self.public.configuration(), "workflow_version": "zentromart-support-v2",
                 "calculation_version": RULE_VERSION, "calculation_policy_sha256": POLICY_SHA256,
                 "verification_connected": True, "authentication_kind": "synthetic_mock_only",
                 "private_data_sent_to_model": False, "ticket_writes_enabled": self.allow_ticket_writes,
                 "verification_attempt_limit": 2, "tools_enabled": True,
+                "localization_version": LOCALIZATION_VERSION,
                 "business_calendar_sha256": hashlib.sha256(
                     "\n".join(sorted(day.isoformat() for day in self.calendar.holidays)).encode()).hexdigest()}
 
@@ -98,11 +109,19 @@ class SupportAgent:
         self.state = WorkflowState(session_id=session, failures=failures, ticket_ledger=tickets)
         self.public.reset()
         self.last_trace = GroundingTrace()
+        self._calls = []
 
     def _reply(self, decision, text, evidence=(), reason="private_workflow"):
         self.last_trace = GroundingTrace("workflow", reason)
+        try:
+            text = localize(text, self.language)
+        except ValueError:
+            text = TRANSLATION_FALLBACK[self.language]
+            decision = "escalate" if decision == "escalate" else "clarify"
+            evidence = ()
+            self.last_trace = GroundingTrace("workflow", "translation_unavailable")
         suffix = " " + " ".join(f"[{identifier}]" for identifier in evidence) if evidence else ""
-        return AgentResponse(decision, text + suffix, "en", tuple(evidence), tool_calls=tuple(self._calls))
+        return AgentResponse(decision, text + suffix, self.language, tuple(evidence), tool_calls=tuple(self._calls))
 
     def _lookup(self, proof=None):
         arguments = {"order_id": self.state.order_id}
@@ -110,6 +129,17 @@ class SupportAgent:
             arguments["verification_value"] = proof
         self._calls.append(ToolCall("lookup_order", arguments))
         return self.gateway.lookup_order(self.state.order_id, verification_value=proof)
+
+    def _public_reply(self, request):
+        text = request.message.strip()
+        numeric_only = bool(re.fullmatch(r"[+()0-9\s-]{4,}", text)) and not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", text)
+        labeled_proof = re.search(r"[0-9]", text) and re.search(r"phone|mobile|pincode|pin\b|suffix|last (?:four|4)|फ़ोन|फोन|पिनकोड|आखिरी.{0,12}अंक", text, re.I)
+        if numeric_only or labeled_proof or re.search(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", text):
+            return self._reply("clarify", "Please keep phone numbers, pincodes and verification values out of public-policy questions.", reason="public_privacy_guard")
+        self.public.state.language = self.language
+        result = self.public.respond(request)
+        self.last_trace = self.public.last_trace
+        return result
 
     def _handover(self, reason):
         oid = self.state.order_id if self.state.verified else None
@@ -303,16 +333,16 @@ class SupportAgent:
         if not isinstance(request.message, str) or not request.message.strip() or len(request.message) > 12000:
             raise ValueError("Use a nonempty support message of at most 12000 characters")
         self.state.session_id = request.session_id
+        self.language = choose_language(request.message, self.language, self.preferred_language)
+        request = replace(request, message=request.message.translate(DIGITS))
         text = normalize(request.message).strip()
         if text == "/reset":
             self.reset()
             return self._reply("clarify", "Conversation details cleared. Verification attempt limits remain active in this session.", reason="workflow_reset")
         if text.startswith("/policy "):
             self.reset()
-            result = self.public.respond(AgentRequest(request.session_id, request.message[8:]))
-            self.last_trace = self.public.last_trace
-            return result
-        if re.search(r"\b(?:another|different|new)\s+order\b", text):
+            return self._public_reply(AgentRequest(request.session_id, request.message[8:]))
+        if re.search(r"\b(?:another|different|new)\s+order\b|दूसर[ेा] ऑर्डर|(?:doosra|dusra) order", text):
             self.reset()
             self.state.phase = "order"
         explicit = {value.replace(" ", "").replace("-", "") for value in ORDER_ID.findall(request.message)}
@@ -342,7 +372,7 @@ class SupportAgent:
         if skus:
             self.state.requested_sku = next(iter(skus))
             self.state.line_no = self.state.quantity = None
-        if re.search(r"not received|not arrived|hasn't arrived|where.{0,20}refund|refund.{0,20}(?:late|pending)", text):
+        if re.search(r"not received|not arrived|hasn't arrived|where.{0,20}refund|refund.{0,20}(?:late|pending)|(?:रिफंड|पैसे).{0,20}नहीं (?:मिल|आ)|refund.{0,20}nahi (?:mil|aay|aay|aya)", text):
             self.state.refund_not_received = True
         try:
             for reason, pattern in IMMEDIATE:
@@ -382,13 +412,11 @@ class SupportAgent:
                         self.state.line_no = self.state.quantity = None
                         return self._reply("clarify", "That line or quantity is not valid for this order. Please use /item LINE QTY.")
                 return self._answer_private()
-            if PROOF.fullmatch(text) or re.search(r"\b(?:my|mera|meri|mere)\s+(?:order|refund|return|delivery)|\border\s+(?:status|id|number|[0-9])|\border\b.{0,25}[0-9]|\border\b.{0,50}\b(?:help|status|baare)\b|/order", text):
+            if submitted_proof(request.message) or PROOF.fullmatch(text) or re.search(r"\b(?:my|mera|meri|mere)\s+(?:order|refund|return|delivery)|\border\s+(?:status|id|number|[0-9])|\border\b.{0,25}[0-9]|\border\b.{0,50}\b(?:help|status|baare)\b|/order|(?:मेर[ाेी]|अपने).{0,15}(?:ऑर्डर|रिफंड|डिलीवरी)|ऑर्डर.{0,20}(?:मदद|स्थिति|नंबर)", text):
                 self.state.phase = "order"
                 return self._reply("clarify", "Please provide the eight-digit order ID first. Do not send verification proof yet.", ("IDV-1", "IDV-2"))
         except ToolExecutionError:
             return self._reply("clarify", "The mock tool could not complete safely. No private details or action success can be confirmed.", reason="tool_error")
         except (ValueError, KeyError, TypeError):
             return self._reply("clarify", "The verified record does not support a safe calculation for this request. Human review is needed; no amount or action is approved.", reason="calculation_review")
-        result = self.public.respond(request)
-        self.last_trace = self.public.last_trace
-        return result
+        return self._public_reply(request)

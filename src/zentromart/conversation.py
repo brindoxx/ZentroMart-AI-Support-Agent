@@ -17,7 +17,7 @@ from .policy import PolicyContext, PolicyEngine
 from .retrieval import SearchIndex
 
 
-CONVERSATION_VERSION = "zentromart-conversation-v1"
+CONVERSATION_VERSION = "zentromart-conversation-v2"
 CATEGORY_WORDS = {
     "electronics": r"\belectronics?\b|\bheadphones?\b|इलेक्ट्रॉनिक्स",
     "fashion": r"\bfashion\b|\bclothes\b|\bclothing\b|\bfootwear\b|कपड़े|कपड़ों|कपड़[ेों]+",
@@ -112,6 +112,9 @@ class ConversationalAgent:
         self.state.recent_customer_messages.clear()
 
     def _language(self, text: str) -> None:
+        if self.default_language:
+            self.state.language = self.default_language
+            return
         lowered = normalize(text)
         for code, pattern in (("hi-en", r"\bhinglish\b"), ("hi", r"(?:reply|answer|respond)\s+in\s+hindi|hindi\s+mein|हिंदी\s+में"),
                               ("en", r"(?:reply|answer|respond)\s+in\s+english|english\s+mein|अंग्रेज़ी\s+में")):

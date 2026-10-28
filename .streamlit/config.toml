@@ -1,0 +1,33 @@
+# Local-only capstone demo. Hosting and production authentication are Phase 15.
+[server]
+address = "127.0.0.1"
+headless = true
+
+[browser]
+gatherUsageStats = false
+
+[client]
+showErrorDetails = "none"
+
+# Native theme adapted from Streamlit's bundled Fluent template; no remote fonts.
+[theme]
+base = "light"
+primaryColor = "#0F766E"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F3F7F6"
+textColor = "#172B2A"
+borderColor = "#D6E2DF"
+linkColor = "#0F766E"
+font = "sans-serif"
+baseRadius = "8px"
+buttonRadius = "8px"
+showWidgetBorder = true
+showSidebarBorder = true
+
+[theme.sidebar]
+backgroundColor = "#F3F7F6"
+secondaryBackgroundColor = "#E7EFED"
+textColor = "#172B2A"
+borderColor = "#D6E2DF"
+primaryColor = "#0F766E"
+linkColor = "#0F766E"

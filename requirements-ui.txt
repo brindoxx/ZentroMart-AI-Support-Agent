@@ -1,0 +1,2 @@
+# Optional Streamlit interface and the existing Gemini public-policy adapter.
+-e .[ui]
