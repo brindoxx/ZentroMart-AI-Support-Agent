@@ -94,8 +94,10 @@ conversation claim.
 - Each browser allows 20 voice attempts, including failed service requests.
   Invalid clips/text are rejected before key loading. Speech is capped at 800
   characters and returned audio at 5 MB. There are no automatic retries.
-- Network/configuration failures pause voice in that browser session. Static
-  notices replace raw provider errors. Text support remains available.
+- Service failures pause voice; **Retry voice connection** explicitly resumes it
+  without resetting attempts or automatically making another request. A missing
+  local key or invalid clip can be corrected and retried without a page reload.
+  Static notices replace raw provider errors. Text support remains available.
 - The adapter does not write recordings, transcripts, or speech files. Session
   state and Streamlit's media delivery still use server/browser memory. Clearing
   context drops displayed audio/drafts; limits remain. Provider-side retention is

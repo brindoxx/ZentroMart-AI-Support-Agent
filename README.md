@@ -232,7 +232,8 @@ evals/                   Evaluation usage and adapter guidance
 report/                  Final report workspace
 .env.example             Public configuration template
 pyproject.toml           Package metadata and dependencies
-requirements.txt         Editable local installation
+requirements.txt         Complete app installation (UI, Gemini, voice)
+requirements-core.txt    Lightweight offline data/retrieval installation
 ```
 
 The supplied dataset is kept together so its relative imports and offline mock
@@ -323,6 +324,19 @@ no automatic retries, and no transcript/audio files saved by the voice adapter.
 Clear/source/language changes discard pending audio and drafts, not usage limits.
 The adapter was tested with simulated services, **not your live Gnani account**.
 See the [Phase 13 guide and five-minute demo](docs/phase-13-voice-and-guided-demo.md).
+
+### Review-driven fixes
+
+The [review audit](docs/review-fixes.md) records each confirmed issue, correction,
+and regression test, including findings that were not reproducible as reported.
+Return help now asks about the item and relevant dates rather than requesting
+policy-selection fields. Missing local voice keys and bad clips are recoverable;
+service failures have an explicit retry button that preserves usage limits.
+
+The distribution name is now `zentromart-ai-support-agent`. The existing local
+checkout folder may still use the historical `ZetroMart` spelling; imports use
+`zentromart`, and no repository/checkout move is required. The UI dependency range
+allows Streamlit 1.x updates; behavior is currently verified on 1.66.1.
 
 ## Remaining roadmap
 
