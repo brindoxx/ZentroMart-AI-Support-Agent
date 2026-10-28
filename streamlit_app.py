@@ -10,6 +10,8 @@ from zentromart.tools import MockToolGateway
 from zentromart.ui_text import TEXT
 from zentromart.web_session import BrowserSession, ConsentModel, PublicAccessError
 from zentromart.workflows import SupportAgent
+from zentromart.demo import DemoGateway, SCENARIOS
+from zentromart.voice import VoiceSession, VoiceError
 
 
 st.set_page_config(page_title="ZentroMart | Support", page_icon=":material/support_agent:", layout="centered")
@@ -38,6 +40,7 @@ def model_settings():
 def handle_message(message, *, proof=False):
     session = st.session_state.support
     st.session_state.notice = None
+    st.session_state.voice_audio = None
     try:
         session.submit(message, proof=proof)
     except PublicAccessError as error:
@@ -58,18 +61,46 @@ def clear_conversation():
     st.session_state.support.clear()
     st.session_state.notice = None
     st.session_state.verification = ""
+    clear_voice()
+
+
+def clear_voice():
+    st.session_state.voice_audio = None
+    st.session_state.voice_draft = ""
+    st.session_state.recording_number = st.session_state.get("recording_number", 0) + 1
+
+
+def send_voice_message():
+    text = st.session_state.get("voice_draft", "")
+    clear_voice()
+    handle_message(text)
+
+
+def change_source():
+    if "support" in st.session_state:
+        st.session_state.support.clear()
+    st.session_state.notice = None
+    st.session_state.verification = ""
+    clear_voice()
 
 
 st.session_state.setdefault("language", "en")
 st.session_state.setdefault("cloud", False)
 st.session_state.setdefault("tickets", False)
 st.session_state.setdefault("notice", None)
+st.session_state.setdefault("demo", False)
+st.session_state.setdefault("support_sessions", {})
+st.session_state.setdefault("voice_enabled", False)
+st.session_state.setdefault("voice_session", VoiceSession())
+st.session_state.setdefault("voice_audio", None)
+st.session_state.setdefault("voice_draft", "")
+st.session_state.setdefault("recording_number", 0)
 
 with st.sidebar:
     st.subheader("ZentroMart", divider="green")
     language = st.segmented_control("Language / भाषा", ("en", "hi", "hi-en"),
                                     format_func=lambda code: {"en": "English", "hi": "हिन्दी", "hi-en": "Hinglish"}[code],
-                                    key="language", required=True, width="stretch")
+                                    key="language", required=True, width="stretch", on_change=clear_voice)
     if language not in TEXT:
         st.error("Choose English, Hindi, or Hinglish.")
         st.stop()
@@ -77,6 +108,8 @@ with st.sidebar:
     st.caption(labels["settings"])
     cloud = st.checkbox(labels["cloud"], key="cloud", help=labels["cloud_help"])
     tickets = st.checkbox(labels["tickets"], key="tickets", help=labels["ticket_help"])
+    demo = st.checkbox(labels["demo"], key="demo", on_change=change_source)
+    voice_enabled = st.checkbox(labels["voice"], key="voice_enabled", help=labels["voice_help"], on_change=clear_voice)
     st.caption(labels["privacy"])
 
 st.title(labels["title"])
@@ -85,14 +118,26 @@ st.caption(labels["intro"])
 try:
     settings = load_settings()
     documents, calendar = public_data(str(settings.dataset_dir))
-    if "support" not in st.session_state:
-        model = ConsentModel(settings_loader=model_settings)
+    source = "demo" if demo else "dataset"
+    sessions = st.session_state.support_sessions
+    if not sessions and "support" in st.session_state:
+        sessions["dataset"] = st.session_state.support
+    if "ui_model" not in st.session_state:
+        st.session_state.ui_model = st.session_state.support.model if "support" in st.session_state else ConsentModel(settings_loader=model_settings)
+    if source not in sessions:
+        model = st.session_state.ui_model
         index = BM25Index(documents)
-        gateway = MockToolGateway(settings.dataset_dir, settings.artifacts_dir / "tickets")
+        gateway = MockToolGateway(settings.dataset_dir, settings.artifacts_dir / ("demo-tickets" if demo else "tickets"))
+        if demo:
+            gateway = DemoGateway(gateway)
         agent = SupportAgent(index, model, settings.reference_date, calendar=calendar, gateway=gateway)
-        st.session_state.support = BrowserSession(agent, model)
+        sessions[source] = BrowserSession(agent, model)
+    st.session_state.support = sessions[source]
     session = st.session_state.support
     session.preferences(language, cloud=cloud, tickets=tickets)
+    if type(voice_enabled) is not bool:
+        raise ValueError("Voice consent must be boolean")
+    st.session_state.voice_session.enabled = voice_enabled
 except Exception:
     st.error(labels["error"])
     st.stop()
@@ -106,6 +151,47 @@ with st.sidebar:
     st.text(labels[status])
     st.divider()
     st.caption(labels["snapshot"])
+
+if voice_enabled:
+    with st.expander(labels["voice_title"], expanded=True):
+        st.caption(labels["voice_note"])
+        waiting = session.agent.state.phase == "proof"
+        recording = st.audio_input(labels["record"], sample_rate=16000,
+                                   key=f"recording_{st.session_state.recording_number}", disabled=waiting)
+        if st.button(labels["transcribe"], key="transcribe", disabled=waiting or recording is None):
+            try:
+                with st.spinner(labels["voice_busy"]):
+                    st.session_state.voice_draft = st.session_state.voice_session.run("transcribe", recording.getvalue(), language)
+            except (VoiceError, ImportError):
+                st.warning(labels["voice_error"])
+        st.text_area(labels["draft"], key="voice_draft", max_chars=4000, disabled=waiting)
+        st.button(labels["send_voice"], key="send_voice", on_click=send_voice_message,
+                  disabled=waiting or not st.session_state.voice_draft.strip())
+        latest = session.messages[-1] if session.messages and session.messages[-1]["role"] == "assistant" else None
+        if st.button(labels["speak"], key="speak", disabled=waiting or latest is None or len(latest["text"]) > 800):
+            try:
+                with st.spinner(labels["voice_busy"]):
+                    st.session_state.voice_audio = st.session_state.voice_session.run("synthesize", latest["text"], latest.get("language", language))
+            except (VoiceError, ImportError):
+                st.warning(labels["voice_error"])
+        if st.session_state.voice_audio:
+            st.audio(st.session_state.voice_audio, format="audio/wav", alt=labels["speak"])
+
+if demo:
+    with st.expander(labels["demo_title"], expanded=True):
+        st.caption(labels["demo_note"])
+        selected = st.selectbox(labels["scenario"], range(len(SCENARIOS)), key="demo_case",
+                                format_func=lambda number: SCENARIOS[number]["title"])
+        if type(selected) is not int or not 0 <= selected < len(SCENARIOS):
+            st.stop()
+        case = SCENARIOS[selected]
+        st.text(f"Order ID: {case['id']} · {labels['demo_proof']}: {case['proof']}")
+        st.caption(labels["demo_steps"])
+        st.text(f"Then: {case['followup']}")
+        if st.button(labels["demo_start"], key="demo_start", disabled=session.agent.state.phase == "proof"):
+            session.clear()
+            handle_message(case["question"] + " Order " + case["id"])
+            st.rerun()
 
 if not session.messages:
     with st.container(border=True):
@@ -124,6 +210,8 @@ for message in session.messages:
     with st.chat_message(message["role"]):
         # Plain text prevents model/customer Markdown from fetching remote images.
         st.text(message["text"])
+        if message["role"] == "assistant" and message.get("path") in {"gemini", "local", "fallback"}:
+            st.caption(labels[message["path"]])
         if message["evidence"]:
             with st.expander(labels["sources"]):
                 for identifier in dict.fromkeys(message["evidence"]):

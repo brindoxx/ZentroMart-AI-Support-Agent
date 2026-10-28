@@ -77,7 +77,14 @@ class BrowserSession:
         self.messages.append({"role": "user", "text": shown, "evidence": ()})
         try:
             response = self.agent.respond(AgentRequest(self.identifier, message))
-            self.messages.append({"role": "assistant", "text": response.reply, "evidence": response.evidence})
+            trace = self.agent.last_trace
+            path = "gemini" if trace.outcome == "accepted" else "fallback" if trace.outcome == "fallback" else "local"
+            # Show sources separately, not machine-oriented citation brackets inside chat prose.
+            displayed = response.reply
+            for identifier in response.evidence:
+                displayed = displayed.replace(f"[{identifier}]", "")
+            self.messages.append({"role": "assistant", "text": displayed.strip(), "evidence": response.evidence,
+                                  "path": path, "language": response.language})
         finally:
             # Never retain the last executor's proof arguments in UI session state.
             self.agent._calls = []

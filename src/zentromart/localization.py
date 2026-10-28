@@ -8,7 +8,7 @@ import re
 from string import Formatter
 
 
-VERSION = "zentromart-localization-v1"
+VERSION = "zentromart-localization-v2"
 LANGUAGES = ("en", "hi", "hi-en")
 DIGITS = str.maketrans("०१२३४५६७८९", "0123456789")
 
@@ -31,6 +31,12 @@ def choose_language(text, previous="en", preferred=None):
 
 # English source, Hindi, Hinglish. Each row is one complete rendered sentence.
 SENTENCES = (
+    ("Hi! I'm ZentroMart's AI support assistant.", "नमस्ते! मैं ZentroMart का AI सपोर्ट सहायक हूँ।", "Hi! Main ZentroMart ka AI support assistant hoon."),
+    ("How can I help you today—track an order, check a return, or understand a refund?", "आज कैसे मदद करूँ—ऑर्डर ट्रैक करना है, रिटर्न देखना है या रिफंड समझना है?", "Aaj kaise help karoon—order track karna hai, return check karna hai, ya refund samajhna hai?"),
+    ("Hi! To continue with your order, please enter the requested phone suffix or delivery pincode in the verification field.", "नमस्ते! ऑर्डर की मदद जारी रखने के लिए सत्यापन वाले फ़ील्ड में फ़ोन के आखिरी अंक या डिलीवरी पिनकोड भरें।", "Hi! Order ki help jaari rakhne ke liye verification field mein phone ke last digits ya delivery pincode dein."),
+    ("You're welcome! Let me know if there's anything else you'd like help with.", "आपका स्वागत है! और कोई मदद चाहिए तो बताइए।", "You're welcome! Aur kisi cheez mein help chahiye toh batayein."),
+    ("Of course—I can help you check that.", "ज़रूर—मैं इसे देखने में आपकी मदद कर सकता हूँ।", "Bilkul—main ise check karne mein help kar sakta hoon."),
+    ("What's your eight-digit order ID? I'll ask for a quick verification step next.", "आपकी आठ अंकों की ऑर्डर ID क्या है? उसके बाद एक छोटा सत्यापन करेंगे।", "Aapki aath-digit order ID kya hai? Uske baad ek chhota verification step karenge."),
     ("Please keep phone numbers, pincodes and verification values out of public-policy questions.", "सार्वजनिक नीति के सवालों में फ़ोन नंबर, पिनकोड और सत्यापन जानकारी न भेजें।", "Public-policy questions mein phone numbers, pincodes aur verification values mat bhejein."),
     ("Stop using the product immediately.", "उत्पाद का इस्तेमाल तुरंत बंद करें।", "Product ka istemaal turant band karein."),
     ("Human review is required.", "सपोर्ट टीम की समीक्षा ज़रूरी है।", "Support team ka review zaroori hai."),

@@ -11,7 +11,7 @@ TEXT = {
         "proof_label": "Phone suffix (4 digits) or delivery pincode (6 digits)", "verify": "Verify securely", "prompt": "Ask a question, or enter your order ID…",
         "sources": "Policy sources", "welcome": "How can we help?", "order": "Check an order", "human": "Ask for human review", "policy": "Ask about returns",
         "commands": "After verification: /items · /item 1 1 · /reason change_of_mind. Use /policy QUESTION for general help.",
-        "snapshot": "Synthetic dataset · policy date 20 Oct 2026 · voice comes in Phase 13",
+        "snapshot": "Synthetic dataset · policy date 20 Oct 2026 · optional Gnani voice",
         "cloud_disabled": "Gemini is off. Enable public-policy access in the sidebar, or check a synthetic order without API calls.",
         "cloud_paused": "Model calls are paused for this session after an error or the 20-generation limit. Order tools remain available. Check configuration before starting another session.",
         "cloud_failed": "The model request could not complete. Check the local key, model access, or quota. Further model calls are paused in this session; no raw provider details are displayed.",
@@ -28,7 +28,7 @@ TEXT = {
         "proof_label": "फ़ोन के आखिरी 4 अंक या डिलीवरी का 6 अंकों का पिनकोड", "verify": "सत्यापन करें", "prompt": "सवाल पूछें या ऑर्डर ID लिखें…",
         "sources": "नीति के स्रोत", "welcome": "हम कैसे मदद करें?", "order": "ऑर्डर देखें", "human": "सपोर्ट टीम की समीक्षा माँगें", "policy": "रिटर्न नीति पूछें",
         "commands": "सत्यापन के बाद: /items · /item 1 1 · /reason change_of_mind. सामान्य मदद: /policy QUESTION।",
-        "snapshot": "सिंथेटिक डेटा · नीति तारीख 20 अक्तूबर 2026 · आवाज़ की सुविधा Phase 13 में",
+        "snapshot": "सिंथेटिक डेटा · नीति तारीख 20 अक्तूबर 2026 · वैकल्पिक Gnani आवाज़",
         "cloud_disabled": "Gemini बंद है। साइडबार में सामान्य नीति की अनुमति दें या बिना API कॉल के सिंथेटिक ऑर्डर देखें।",
         "cloud_paused": "त्रुटि या 20 अनुरोधों की सीमा के बाद इस सत्र में मॉडल रुका है। ऑर्डर टूल उपलब्ध हैं। नए सत्र से पहले कॉन्फ़िगरेशन जाँचें।",
         "cloud_failed": "मॉडल अनुरोध पूरा नहीं हुआ। स्थानीय key, मॉडल उपलब्धता या quota जाँचें। इस सत्र के आगे के मॉडल अनुरोध रोक दिए गए हैं; प्रदाता की निजी जानकारी नहीं दिखाई जाती।",
@@ -45,7 +45,7 @@ TEXT = {
         "proof_label": "Phone ke last 4 digits ya delivery ka 6-digit pincode", "verify": "Verification karein", "prompt": "Question poochhein ya order ID likhein…",
         "sources": "Policy sources", "welcome": "Kaise help karein?", "order": "Order check karein", "human": "Team review maangein", "policy": "Return policy poochhein",
         "commands": "Verification ke baad: /items · /item 1 1 · /reason change_of_mind. General help: /policy QUESTION.",
-        "snapshot": "Synthetic dataset · policy date 20 Oct 2026 · voice Phase 13 mein aayegi",
+        "snapshot": "Synthetic dataset · policy date 20 Oct 2026 · optional Gnani voice",
         "cloud_disabled": "Gemini off hai. Sidebar mein public-policy access enable karein, ya bina API calls ke synthetic order check karein.",
         "cloud_paused": "Error ya 20-generation limit ke baad is session mein model calls paused hain. Order tools available hain. Naya session shuru karne se pehle configuration check karein.",
         "cloud_failed": "Model request complete nahi hua. Local key, model access ya quota check karein. Is session mein aage ki model calls paused hain; raw provider details nahi dikhte.",
@@ -53,3 +53,36 @@ TEXT = {
         "reset_note": "Conversation clear karne se verification lockout ya model-call limits reset nahi hoti.",
     },
 }
+
+# Tutorial and transparent response routing; no account data is used in labels.
+for language, values in {
+    "en": {"demo": "Use guided demo orders", "demo_title": "Try a complete example", "scenario": "Demo scenario",
+           "demo_note": "Invented tutorial orders—not the supplied dataset. Public test credentials work only in demo mode.",
+           "demo_start": "Start this example", "demo_proof": "Test phone suffix", "demo_steps": "Start the example, then type the test suffix in the masked verification field. Ask a follow-up after verification.",
+           "gemini": "Gemini · grounded policy reply", "local": "Handled locally · no Gemini call", "fallback": "Safe fallback · not a generated answer"},
+    "hi": {"demo": "गाइडेड डेमो ऑर्डर इस्तेमाल करें", "demo_title": "एक पूरा उदाहरण आज़माएँ", "scenario": "डेमो उदाहरण",
+           "demo_note": "ये बनाए गए अभ्यास ऑर्डर हैं—दिए गए डेटासेट से अलग। दिखाए गए टेस्ट अंक सिर्फ डेमो मोड में काम करते हैं।",
+           "demo_start": "यह उदाहरण शुरू करें", "demo_proof": "टेस्ट फ़ोन के आखिरी अंक", "demo_steps": "उदाहरण शुरू करें, फिर छिपे हुए सत्यापन फ़ील्ड में टेस्ट अंक लिखें। सत्यापन के बाद अगला सवाल पूछें।",
+           "gemini": "Gemini · नीति पर आधारित उत्तर", "local": "स्थानीय उत्तर · Gemini कॉल नहीं", "fallback": "सुरक्षित वैकल्पिक उत्तर · जनरेट किया हुआ जवाब नहीं"},
+    "hi-en": {"demo": "Guided demo orders use karein", "demo_title": "Ek poora example try karein", "scenario": "Demo scenario",
+              "demo_note": "Yeh invented tutorial orders hain—supplied dataset se alag. Public test digits sirf demo mode mein kaam karte hain.",
+              "demo_start": "Yeh example shuru karein", "demo_proof": "Test phone ke last digits", "demo_steps": "Example start karein, phir masked verification field mein test digits likhein. Verification ke baad follow-up poochhein.",
+              "gemini": "Gemini · policy-based reply", "local": "Local reply · Gemini call nahi", "fallback": "Safe fallback · generated answer nahi"},
+}.items():
+    TEXT[language].update(values)
+
+for language, values in {
+    "en": {"voice": "Enable Gnani voice (uses credits)", "voice_help": "Audio and replies you choose to speak are sent to Gnani, including order details in a selected reply. Never speak verification proofs or real personal data. Maximum 20 voice attempts per browser session.",
+           "voice_title": "Voice · record, review, send", "record": "Record a short question (up to 15 seconds)", "transcribe": "Transcribe with Gnani", "draft": "Review or edit what you said", "send_voice": "Send reviewed message",
+           "speak": "Read latest reply aloud", "voice_error": "Voice could not complete. Check the key, credits, clip format or length. Network/configuration failures pause voice for this session; nothing was automatically retried.",
+           "voice_note": "Verification must be typed in the masked field. Audio stays in memory; no automatic recording, submission or playback. Speech output supports replies up to 800 characters.", "voice_busy": "Contacting Gnani…"},
+    "hi": {"voice": "Gnani आवाज़ चालू करें (क्रेडिट खर्च होंगे)", "voice_help": "ऑडियो और पढ़ने के लिए चुने जवाब Gnani को भेजे जाते हैं; चुने जवाब में ऑर्डर विवरण भी हो सकते हैं। सत्यापन अंक या असली निजी डेटा न बोलें। प्रति सत्र अधिकतम 20 प्रयास।",
+           "voice_title": "आवाज़ · रिकॉर्ड करें, जाँचें, भेजें", "record": "छोटा सवाल रिकॉर्ड करें (15 सेकंड तक)", "transcribe": "Gnani से लिखित रूप लें", "draft": "सुनी गई बात जाँचें या बदलें", "send_voice": "जाँचा हुआ संदेश भेजें",
+           "speak": "आखिरी जवाब सुनें", "voice_error": "आवाज़ प्रक्रिया पूरी नहीं हुई। key, क्रेडिट, रिकॉर्डिंग का फ़ॉर्मैट या अवधि जाँचें। नेटवर्क या कॉन्फ़िगरेशन त्रुटि के बाद इस सत्र में आवाज़ रुकती है; अपने आप दोबारा प्रयास नहीं हुआ।",
+           "voice_note": "सत्यापन छिपे फ़ील्ड में टाइप करें। ऑडियो सिर्फ मेमोरी में रहता है; अपने आप रिकॉर्डिंग, भेजना या सुनाना नहीं होता। 800 अक्षरों तक के जवाब सुन सकते हैं।", "voice_busy": "Gnani से संपर्क हो रहा है…"},
+    "hi-en": {"voice": "Gnani voice enable karein (credits lagenge)", "voice_help": "Audio aur speak karne ke liye chosen replies Gnani ko bheje jaate hain, selected reply mein order details bhi ho sakti hain. Verification proof ya real personal data mat bolein. Har session mein maximum 20 attempts.",
+              "voice_title": "Voice · record, review, send", "record": "Chhota question record karein (15 seconds tak)", "transcribe": "Gnani se transcribe karein", "draft": "Jo suna gaya use check ya edit karein", "send_voice": "Reviewed message bhejein",
+              "speak": "Aakhri reply sunein", "voice_error": "Voice complete nahi hui. Key, credits, recording format ya length check karein. Network/configuration error ke baad session mein voice paused hai; automatic retry nahi hua.",
+              "voice_note": "Verification masked field mein type karein. Audio sirf memory mein rehti hai; automatic recording, sending ya playback nahi hota. 800 characters tak ke replies bol sakte hain.", "voice_busy": "Gnani se connect ho rahe hain…"},
+}.items():
+    TEXT[language].update(values)

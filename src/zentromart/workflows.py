@@ -94,7 +94,7 @@ class SupportAgent:
 
     def configuration(self):
         import hashlib
-        return {**self.public.configuration(), "workflow_version": "zentromart-support-v2",
+        return {**self.public.configuration(), "workflow_version": "zentromart-support-v3",
                 "calculation_version": RULE_VERSION, "calculation_policy_sha256": POLICY_SHA256,
                 "verification_connected": True, "authentication_kind": "synthetic_mock_only",
                 "private_data_sent_to_model": False, "ticket_writes_enabled": self.allow_ticket_writes,
@@ -336,6 +336,13 @@ class SupportAgent:
         self.language = choose_language(request.message, self.language, self.preferred_language)
         request = replace(request, message=request.message.translate(DIGITS))
         text = normalize(request.message).strip()
+        # Social turns do not need policy evidence, a model call, or a failed-proof attempt.
+        if re.fullmatch(r"(?:hi|hello|hey|good morning|good evening|namaste|नमस्ते|नमस्कार)[!.,\s]*", text):
+            if self.state.phase == "proof":
+                return self._reply("clarify", "Hi! To continue with your order, please enter the requested phone suffix or delivery pincode in the verification field.", reason="greeting")
+            return self._reply("answer", "Hi! I'm ZentroMart's AI support assistant. How can I help you today—track an order, check a return, or understand a refund?", reason="greeting")
+        if re.fullmatch(r"(?:thanks|thank you|thank you so much|shukriya|dhanyavaad|धन्यवाद|शुक्रिया)[!.,\s]*", text):
+            return self._reply("answer", "You're welcome! Let me know if there's anything else you'd like help with.", reason="thanks")
         if text == "/reset":
             self.reset()
             return self._reply("clarify", "Conversation details cleared. Verification attempt limits remain active in this session.", reason="workflow_reset")
@@ -388,7 +395,7 @@ class SupportAgent:
                 candidates = GROUPED_ORDER.findall(request.message)
                 if len(candidates) == 1:
                     return self._begin_order(candidates[0].replace(" ", "").replace("-", ""))
-                return self._reply("clarify", "Please provide the eight-digit order ID first. Do not send verification proof yet.", ("IDV-1", "IDV-2"))
+                return self._reply("clarify", "Of course—I can help you check that. What's your eight-digit order ID? I'll ask for a quick verification step next.", ("IDV-1", "IDV-2"))
             if self.state.phase == "proof":
                 return self._verify(request.message)
             if self.state.phase == "locked":
@@ -414,7 +421,7 @@ class SupportAgent:
                 return self._answer_private()
             if submitted_proof(request.message) or PROOF.fullmatch(text) or re.search(r"\b(?:my|mera|meri|mere)\s+(?:order|refund|return|delivery)|\border\s+(?:status|id|number|[0-9])|\border\b.{0,25}[0-9]|\border\b.{0,50}\b(?:help|status|baare)\b|/order|(?:मेर[ाेी]|अपने).{0,15}(?:ऑर्डर|रिफंड|डिलीवरी)|ऑर्डर.{0,20}(?:मदद|स्थिति|नंबर)", text):
                 self.state.phase = "order"
-                return self._reply("clarify", "Please provide the eight-digit order ID first. Do not send verification proof yet.", ("IDV-1", "IDV-2"))
+                return self._reply("clarify", "Of course—I can help you check that. What's your eight-digit order ID? I'll ask for a quick verification step next.", ("IDV-1", "IDV-2"))
         except ToolExecutionError:
             return self._reply("clarify", "The mock tool could not complete safely. No private details or action success can be confirmed.", reason="tool_error")
         except (ValueError, KeyError, TypeError):
