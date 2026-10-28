@@ -212,7 +212,7 @@ for message in session.messages:
     with st.chat_message(message["role"]):
         # Plain text prevents model/customer Markdown from fetching remote images.
         st.text(message["text"])
-        if message["role"] == "assistant" and message.get("path") in {"gemini", "local", "fallback", "clarification"}:
+        if message["role"] == "assistant" and message.get("path") in {"gemini", "dialogue", "assisted", "local", "fallback", "clarification"}:
             st.caption(labels[message["path"]])
         if message["evidence"]:
             with st.expander(labels["sources"]):

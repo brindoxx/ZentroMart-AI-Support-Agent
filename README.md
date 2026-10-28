@@ -306,10 +306,21 @@ from the supplied dataset. Start an example, enter its displayed test suffix in
 the masked form, and ask the suggested follow-up. Verification is not bypassed.
 Demo tickets, when explicitly enabled, go to `artifacts/demo-tickets/`.
 
-Greetings now receive a friendly local reply instead of a retrieval error. Reply
-captions identify Gemini-generated policy answers, local workflows, and safe
+With **Use Gemini for natural conversation** enabled, Gemini understands the
+request and writes greetings and follow-up questions. This is not a separate
+hardcoded script for every item or intent. Grounded policy answers still use
+retrieved company evidence; verified order facts and calculations stay in the
+backend. With Gemini off, the existing local/offline workflows remain available.
+Reply captions distinguish model-written conversation, model-assisted routing,
+Gemini-generated policy answers, local workflows, and safe
 fallbacks. Inline citation brackets are moved into the source panel for display;
 the backend still retains and evaluates the original evidence IDs.
+
+Planning and answering share the existing 20-generation session budget; a public
+policy answer normally needs two generations. Clearing chat or switching demo
+mode does not renew the budget. See [LLM-led conversation](docs/llm-led-conversation.md)
+for the architecture, examples, safety boundaries and test coverage. Existing CLI
+and evaluation modes retain their previous behavior for baseline comparisons.
 
 For voice, install `requirements-voice.txt`, restart Streamlit, and enable
 **Gnani voice**. Your existing `GNANI_API_KEY` in `.env` is read only when needed.

@@ -25,6 +25,12 @@ class ConsentModel:
         self._settings_loader = settings_loader
 
     def generate(self, request):
+        return self._call("generate", request)
+
+    def plan(self, request):
+        return self._call("plan", request)
+
+    def _call(self, method, request):
         if self.enabled is not True:
             raise PublicAccessError("cloud_disabled")
         if self.blocked or self.calls >= self.limit:
@@ -33,7 +39,7 @@ class ConsentModel:
             if self._client is None:
                 self._client = GeminiModel((self._settings_loader or load_llm_settings)())
             self.calls += 1  # Includes failed requests; provider retries stay bounded separately.
-            return self._client.generate(request)
+            return getattr(self._client, method)(request)
         except (ModelError, ValueError):
             self.blocked = True
             raise PublicAccessError("cloud_failed") from None
@@ -50,17 +56,28 @@ class BrowserSession:
     model: ConsentModel = field(repr=False)
     identifier: str = field(default_factory=lambda: uuid4().hex, repr=False)
     messages: list = field(default_factory=list, repr=False)
+    dialogue: object = field(init=False, repr=False)
+    dialogue_enabled: bool = field(default=False, init=False)
+
+    def __post_init__(self):
+        from .dialogue import LLMConversation
+        self.dialogue = LLMConversation(self.agent, self.model)
 
     def preferences(self, language, cloud=False, tickets=False):
         if type(cloud) is not bool or type(tickets) is not bool:
             raise ValueError("Consent flags must be boolean")
         self.agent.set_language(language)
+        if cloud != self.dialogue_enabled:
+            self.dialogue.reset_context()
+            self.agent.public.reset()
+        self.dialogue_enabled = cloud
         self.model.enabled = cloud
         self.agent.allow_ticket_writes = tickets
         self.agent.gateway.allow_ticket_writes = tickets
 
     def clear(self):
         self.agent.reset()
+        self.dialogue.reset_context()
         self.messages.clear()
 
     def submit(self, message, *, proof=False):
@@ -73,9 +90,14 @@ class BrowserSession:
                  "hi-en": "Verification bheji gayi (hidden)"}[self.agent.language] if hidden else display_message(message)
         self.messages.append({"role": "user", "text": shown, "evidence": ()})
         try:
-            response = self.agent.respond(AgentRequest(self.identifier, message))
-            trace = self.agent.last_trace
+            runner = self.dialogue if self.dialogue_enabled else self.agent
+            response = runner.respond(AgentRequest(self.identifier, message))
+            trace = runner.last_trace
             path = "gemini" if trace.outcome == "accepted" else "fallback" if trace.outcome == "fallback" else "local"
+            if trace.reason in {"dialogue_respond", "dialogue_clarify"}:
+                path = "dialogue"
+            elif trace.reason == "dialogue_dispatch":
+                path = "assisted"
             if trace.reason in {"needs_context", "conversation_category", "conversation_date_format"}:
                 path = "clarification"
             # Show sources separately, not machine-oriented citation brackets inside chat prose.

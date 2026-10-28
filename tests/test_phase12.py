@@ -248,6 +248,8 @@ class StreamlitTests(unittest.TestCase):
             app.run()
             app.checkbox(key="cloud").check().run()
             with patch("zentromart.web_session.GeminiModel") as transport:
+                from test_dialogue import result
+                transport.return_value.plan.return_value = result(action="search", topic="membership", reply="", language=language)
                 transport.return_value.generate.return_value = ModelResult(
                     ModelDraft("clarify", TEXT[language]["intro"], language, ()), "test", 1, 0.1, {})
                 app.chat_input[0].set_value("/policy How does Plus membership work?").run()

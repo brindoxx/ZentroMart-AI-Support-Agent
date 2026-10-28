@@ -54,6 +54,23 @@ TEXT = {
     },
 }
 
+# One shared generation budget covers both dialogue planning and grounded answers.
+for language, values in {
+    "en": {"cloud": "Use Gemini for natural conversation",
+           "cloud_help": "Minimized customer wording and limited public context are sent to Gemini. Verified order records and proofs are not sent. Up to 20 total planning/answer generations per browser session; a policy answer can use two.",
+           "dialogue": "Gemini · conversation", "assisted": "Gemini understood your request · backend reply",
+           "busy": "Working on your request…"},
+    "hi": {"cloud": "स्वाभाविक बातचीत के लिए Gemini इस्तेमाल करें",
+           "cloud_help": "सीमित सार्वजनिक संदर्भ और निजी जानकारी कम किए गए सवाल Gemini को भेजे जाते हैं। सत्यापित ऑर्डर और सत्यापन अंक नहीं भेजे जाते। योजना और उत्तर मिलाकर प्रति सत्र 20 अनुरोध; एक नीति उत्तर में दो लग सकते हैं।",
+           "dialogue": "Gemini · बातचीत", "assisted": "Gemini ने अनुरोध समझा · बैकएंड का उत्तर",
+           "busy": "आपके अनुरोध पर काम हो रहा है…"},
+    "hi-en": {"cloud": "Natural conversation ke liye Gemini use karein",
+              "cloud_help": "Minimized customer wording aur limited public context Gemini ko jaate hain. Verified order records aur proofs nahi bheje jaate. Planning aur answers milaakar session mein 20 generations; policy answer mein do lag sakte hain.",
+              "dialogue": "Gemini · conversation", "assisted": "Gemini ne request samjhi · backend reply",
+              "busy": "Aapki request par kaam ho raha hai…"},
+}.items():
+    TEXT[language].update(values)
+
 for language, label in {"en": "Retry voice connection", "hi": "आवाज़ कनेक्शन फिर आज़माएँ", "hi-en": "Voice connection phir try karein"}.items():
     TEXT[language]["voice_retry"] = label
 

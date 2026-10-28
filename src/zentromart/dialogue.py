@@ -146,6 +146,7 @@ class LLMConversation:
             return self._local(request)
         safe = minimize(text)
         if len(safe) > 1500:
+            self.last_trace = GroundingTrace("fallback", "dialogue_input_limit")
             return AgentResponse("clarify", RECOVERY[language], language)
         try:
             plan, result = self._propose(safe, language)
@@ -159,7 +160,9 @@ class LLMConversation:
                 command = "/human" if plan.action == "handover" else "my order " + {
                     "order_status": "status", "return_window": "return", "return_fee": "return fee", "pickup": "return pickup",
                     "refunds": "refund", "cancellations": "cancel", "damage": "damaged item", "delivery": "delivery"}[plan.topic]
-                return self._local(AgentRequest(request.session_id, command))
+                response = self._local(AgentRequest(request.session_id, command))
+                self.last_trace = GroundingTrace("workflow", "dialogue_dispatch", result.attempts)
+                return response
             if plan.action == "search":
                 bundle = self.backend.public.engine.assemble(safe, context, self.backend.public.top_k)
                 if bundle["resolution"] == "needs_context":
