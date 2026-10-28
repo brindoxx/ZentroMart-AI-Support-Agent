@@ -176,12 +176,36 @@ are inspected transiently but omitted from saved reports, along with verificatio
 proofs, raw messages, private order payloads, and replies. Configuration records
 policy/calendar hashes and the write flag. Do not print or serialize raw traces.
 
-The final six-turn development-prefix run completed without errors: decisions
+At the end of Phase 11, the six-turn development-prefix run completed without errors: decisions
 6/6, expected tool calls 5/6 (ticket writes disabled), declared language 0/6,
 and required-fact lexical coverage 60% over five applicable rows. Private replies
-are currently English; multilingual rendering remains Phase 12. Gold citation
+were English in that phase; Phase 12 adds multilingual rendering. Gold citation
 precision was 25%, recall 38.9%; these require improvement/review, not a claim of
 fully correct answers. Private flows perform no retrieval, so their zero raw
 retrieval hits are not a regression in BM25. This repeatedly inspected prefix is
 development evidence, not a held-out benchmark. See the Phase 11 learning guide
 for the routing fix, tests, and limitations.
+
+## Multilingual frontend checks (Phase 12)
+
+Install `requirements-ui.txt`, then run the existing full unittest command.
+The suite includes native `streamlit.testing.v1.AppTest` interactions: offline
+startup, disabled cloud consent, masked proof submission/clearing, language
+switching, lockout after clearing, and separate browser-session state. AppTest
+does not verify browser layout, scrolling, or rendered font quality. No server
+or paid API call is needed for these checks.
+
+The same six-turn development prefix was rerun with a model stub that raises on
+any generation call. All six rows completed without errors: decisions 6/6,
+declared language 6/6, tools 5/6 with writes disabled, lexical fact coverage 60%
+over five applicable rows, citation precision 25%, recall 38.9%. This shows the
+new local language path works on that inspected sample; it does not establish
+general translation or answer accuracy. Report ID: `20261028T051015Z-1e5d1503`.
+It preceded the version-label bump to support/conversation v2; localization v1
+and the tested behavior are unchanged by that label-only bump.
+
+The 198-test suite includes 20 new Phase 12 tests. Fixed template tests check
+placeholders in Hindi and Hinglish; public Gemini paths are tested with model
+stubs, not fresh live API calls. Fluent-speaker review, wider Hinglish/Hindi
+wording, citation improvement, voice/ASR, and held-out evaluation remain future
+work. Do not compare declared-language match to semantic translation accuracy.

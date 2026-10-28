@@ -8,7 +8,7 @@ Transformers course.
 
 ## Current progress
 
-**Phases 1–11 complete: grounded replies, conversation state, and verified mock support.**
+**Phases 1–12 complete: multilingual Streamlit chat and verified mock support.**
 The project supports BM25, local multilingual semantic search, and hybrid rank
 fusion over policy sections and public product facts, with separate retrieval
 evaluation. A deterministic layer now prioritizes policy authority and applies
@@ -16,7 +16,8 @@ scoped historical, festive, and marketplace exceptions to explicit scenario fact
 Gemini now generates public-policy replies with source-ID checks, safe
 clarification fallbacks, and an opt-in memory-backed conversation mode. Verified
 mock order lookup, deterministic calculations, and opt-in local handover tickets
-are now available. The web interface and voice support are planned next.
+are now available in a Streamlit-only frontend with English, Hindi, and Hinglish
+reply preferences. Gnani voice support is planned next.
 
 The planned agent will answer from company policies, verify callers before
 showing order details, create handover tickets, and support English, Hindi,
@@ -252,14 +253,48 @@ After verification, `/items` lists item lines, `/item 1 1` selects line 1 and on
 unit, and `/reason change_of_mind` explicitly classifies a proposed return.
 `/policy QUESTION` clears private context and returns to general policy help.
 `/quit` exits. Private facts and proofs are never sent to Gemini; its connection
-is available only for public-policy questions. Private-workflow replies are
-currently English.
+is available only for public-policy questions. Private-workflow replies now use
+fixed English, Hindi, and Hinglish translations; `--language hi` or
+`--language hi-en` explicitly selects the CLI reply language.
 
 Ticket writing is disabled by default. Add `--write-tickets` to allow **local mock**
 tickets under ignored `artifacts/tickets/`; this does not contact a real support
 team. The assistant cannot cancel an order, approve a claim, or pay a refund.
 Calculations are conditional estimates against the frozen 2026-10-20 snapshot.
 See the [Phase 11 learning guide](docs/phase-11-verified-support-workflows.md).
+
+## Streamlit frontend (Phase 12)
+
+From the repository root:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-ui.txt
+.\.venv\Scripts\python.exe -m streamlit run streamlit_app.py
+```
+
+Open `http://127.0.0.1:8501`. The app binds to the local computer, not your network.
+Choose English, Hindi, or Hinglish in the sidebar. Synthetic order verification
+works without Gemini; proofs use a masked form, are cleared after submission,
+and never appear in the displayed history. Only public policies/catalog and
+holidays are shared in a cache; each browser tab owns its agent and private state.
+
+Gemini is **off by default**. Enable the public-policy checkbox when you want model
+answers; it uses the existing local `.env` key unless a server-side Streamlit
+`[llm]` secret is configured, never a key pasted into chat. Public
+questions and bounded public context may then leave the device. The UI allows at
+most 20 generation attempts per session (bounded provider retries are separate),
+and pauses model access after a provider/configuration failure. Private workflows
+remain available. Clearing the conversation does not reset call limits or
+verification lockouts.
+
+Local ticket creation is a separate, default-off checkbox. Tickets remain mock
+CSV records, not real human contact. Chat history is session-only, limited to
+the most recent 24 messages, with no transcript export or disk saving. Voice,
+hosting, and production authentication are not part of this local UI.
+
+The native theme uses Streamlit configuration, not a separate frontend framework
+or injected CSS. See the [Phase 12 learning guide](docs/phase-12-streamlit-and-languages.md)
+for the design, language rules, tests, and limitations.
 
 ## Remaining roadmap
 
@@ -269,8 +304,8 @@ more time to test and improve each part:
 | Phase | Scope | Status |
 | --- | --- | --- |
 | 11 (old 11–13) | Verified order workflows, handover tickets, deterministic calculations | Complete |
-| 12 (old 14–15) | Multilingual replies and interactive web interface | Next |
-| 13 (old 16–17) | Gnani speech input/output and voice workflow | Planned |
+| 12 (old 14–15) | Multilingual replies and Streamlit web interface | Complete |
+| 13 (old 16–17) | Gnani speech input/output and voice workflow | Next |
 | 14 (old 18–19) | Expanded evaluation, failure analysis, and improvements | Planned |
 | 15 (old 20–21) | Deployment, report, demonstration, and release preparation | Planned |
 
