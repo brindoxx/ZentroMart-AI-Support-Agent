@@ -66,8 +66,30 @@ def clear_conversation():
 
 def clear_voice():
     st.session_state.voice_audio = None
+    st.session_state.voice_notice = None
     st.session_state.voice_draft = ""
     st.session_state.recording_number = st.session_state.get("recording_number", 0) + 1
+
+
+def handle_voice(action, value, language):
+    """Keep only reviewed error codes; never provider messages or exceptions."""
+    st.session_state.voice_notice = None
+    target = "voice_draft" if action == "transcribe" else "voice_audio"
+    st.session_state[target] = "" if action == "transcribe" else None
+    try:
+        with st.spinner(labels["voice_busy"]):
+            st.session_state[target] = st.session_state.voice_session.run(action, value, language)
+    except ImportError:
+        st.session_state.voice_notice = (action, "dependency")
+    except VoiceError as error:
+        code = str(error)
+        allowed = {"timeout", "authentication", "quota", "not_configured", "invalid_audio", "invalid_text", "paused"}
+        st.session_state.voice_notice = (action, code if code in allowed else "error")
+
+
+def retry_voice():
+    st.session_state.voice_session.resume()
+    st.session_state.voice_notice = None
 
 
 def send_voice_message():
@@ -93,6 +115,7 @@ st.session_state.setdefault("support_sessions", {})
 st.session_state.setdefault("voice_enabled", False)
 st.session_state.setdefault("voice_session", VoiceSession())
 st.session_state.setdefault("voice_audio", None)
+st.session_state.setdefault("voice_notice", None)
 st.session_state.setdefault("voice_draft", "")
 st.session_state.setdefault("recording_number", 0)
 
@@ -155,27 +178,32 @@ with st.sidebar:
 if voice_enabled:
     with st.expander(labels["voice_title"], expanded=True):
         st.caption(labels["voice_note"])
-        if st.session_state.voice_session.blocked:
-            st.button(labels["voice_retry"], key="voice_retry", on_click=st.session_state.voice_session.resume)
         waiting = session.agent.state.phase == "proof"
         recording = st.audio_input(labels["record"], sample_rate=16000,
                                    key=f"recording_{st.session_state.recording_number}", disabled=waiting)
-        if st.button(labels["transcribe"], key="transcribe", disabled=waiting or recording is None):
-            try:
-                with st.spinner(labels["voice_busy"]):
-                    st.session_state.voice_draft = st.session_state.voice_session.run("transcribe", recording.getvalue(), language)
-            except (VoiceError, ImportError):
-                st.warning(labels["voice_error"])
+        with st.expander(labels["mic_help"]):
+            st.caption(labels["mic_note"])
+            st.button(labels["recorder_reset"], key="recorder_reset", on_click=clear_voice, disabled=waiting)
+            uploaded = st.file_uploader(labels["upload_wav"], type=["wav"], max_upload_size=1,
+                                        key=f"voice_upload_{st.session_state.recording_number}", disabled=waiting)
+        clip = uploaded if uploaded is not None else recording
+        if st.button(labels["transcribe"], key="transcribe", disabled=waiting or clip is None):
+            handle_voice("transcribe", clip.getvalue(), language)
         st.text_area(labels["draft"], key="voice_draft", max_chars=4000, disabled=waiting)
         st.button(labels["send_voice"], key="send_voice", on_click=send_voice_message,
                   disabled=waiting or not st.session_state.voice_draft.strip())
         latest = session.messages[-1] if session.messages and session.messages[-1]["role"] == "assistant" else None
         if st.button(labels["speak"], key="speak", disabled=waiting or latest is None or len(latest["text"]) > 800):
-            try:
-                with st.spinner(labels["voice_busy"]):
-                    st.session_state.voice_audio = st.session_state.voice_session.run("synthesize", latest["text"], latest.get("language", language))
-            except (VoiceError, ImportError):
-                st.warning(labels["voice_error"])
+            handle_voice("synthesize", latest["text"], latest.get("language", language))
+        if st.button(labels["test_speech"], key="test_speech", disabled=waiting):
+            handle_voice("synthesize", {"en": "Hello. This is a ZentroMart voice test.",
+                                       "hi": "नमस्ते। यह ज़ेंट्रोमार्ट की आवाज़ का परीक्षण है।",
+                                       "hi-en": "Namaste. Yeh ZentroMart ka voice test hai."}[language], language)
+        if st.session_state.voice_notice:
+            action, code = st.session_state.voice_notice
+            st.warning(labels["stt_error" if action == "transcribe" else "tts_error"] + " " + labels["voice_" + code])
+        if st.session_state.voice_session.blocked:
+            st.button(labels["voice_retry"], key="voice_retry", on_click=retry_voice, disabled=waiting)
         if st.session_state.voice_audio:
             st.audio(st.session_state.voice_audio, format="audio/wav", alt=labels["speak"])
 

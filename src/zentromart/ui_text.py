@@ -74,6 +74,46 @@ for language, values in {
 for language, label in {"en": "Retry voice connection", "hi": "आवाज़ कनेक्शन फिर आज़माएँ", "hi-en": "Voice connection phir try karein"}.items():
     TEXT[language]["voice_retry"] = label
 
+for language, values in {
+    "en": {"mic_help": "Microphone troubleshooting / upload instead",
+           "mic_note": "An error inside the recorder happens before Gnani transcription. Open this app directly in Chrome or Edge at localhost (or HTTPS), allow microphone access in site settings and Windows privacy settings, and select a working input device. Embedded previews may not support recording. Reset the recorder after changing permissions, or upload a synthetic WAV clip instead. Never record verification proofs.",
+           "recorder_reset": "Reset recorder and draft", "upload_wav": "Or upload a WAV clip (mono, 16-bit PCM, 16 kHz; up to 15 seconds)",
+           "test_speech": "Test speech playback (uses credits)", "stt_error": "Transcription failed.", "tts_error": "Speech playback generation failed.",
+           "voice_timeout": "The Gnani connection or response timed out. No audio success is confirmed. Check your connection/service availability, then use Retry voice connection. No automatic retry was made.",
+           "voice_authentication": "Gnani rejected access. Check the local voice key and account permissions, then retry.",
+           "voice_quota": "Gnani returned a credit/rate-limit response. Check the dashboard before retrying.",
+           "voice_not_configured": "Set a valid GNANI_API_KEY in the local .env file. Do not paste it into chat.",
+           "voice_invalid_audio": "Use a mono, 16-bit PCM WAV at 16 kHz, between zero and 15 seconds (not an empty clip). No service request was made.",
+           "voice_invalid_text": "Choose a nonempty reply of at most 800 characters.",
+           "voice_dependency": "Install requirements-voice.txt in the app's Python environment and restart it.",
+           "voice_paused": "Voice is paused or its 20-attempt limit was reached. Retry voice connection does not renew the budget."},
+    "hi": {"mic_help": "माइक्रोफ़ोन मदद / WAV अपलोड करें",
+           "mic_note": "रिकॉर्डर की त्रुटि Gnani को भेजने से पहले होती है। ऐप को सीधे Chrome या Edge में localhost (या HTTPS) पर खोलें। साइट और Windows में माइक्रोफ़ोन की अनुमति व सही इनपुट डिवाइस जाँचें। एम्बेडेड प्रीव्यू में रिकॉर्डिंग उपलब्ध न हो सकती है। अनुमति बदलने के बाद रिकॉर्डर रीसेट करें या सिंथेटिक WAV अपलोड करें। सत्यापन अंक न बोलें।",
+           "recorder_reset": "रिकॉर्डर और ड्राफ्ट रीसेट करें", "upload_wav": "या WAV अपलोड करें (मोनो, 16-बिट PCM, 16 kHz; अधिकतम 15 सेकंड)",
+           "test_speech": "आवाज़ का परीक्षण करें (क्रेडिट खर्च होंगे)", "stt_error": "लिप्यंतरण विफल रहा।", "tts_error": "बोलने के लिए ऑडियो नहीं बन सका।",
+           "voice_timeout": "Gnani कनेक्शन या जवाब का समय समाप्त हुआ। ऑडियो बनने की पुष्टि नहीं है। नेटवर्क और सेवा जाँचें, फिर कनेक्शन पुनः आज़माएँ। अपने आप दोबारा प्रयास नहीं हुआ।",
+           "voice_authentication": "Gnani ने पहुँच अस्वीकार की। स्थानीय key और खाते की अनुमति जाँचें।",
+           "voice_quota": "Gnani ने क्रेडिट या दर-सीमा का जवाब दिया। फिर प्रयास करने से पहले डैशबोर्ड जाँचें।",
+           "voice_not_configured": "स्थानीय .env में सही GNANI_API_KEY रखें। चैट में न भेजें।",
+           "voice_invalid_audio": "मोनो, 16-बिट PCM, 16 kHz की खाली न होने वाली WAV चुनें, अधिकतम 15 सेकंड। सेवा अनुरोध नहीं भेजा गया।",
+           "voice_invalid_text": "अधिकतम 800 अक्षरों का खाली न होने वाला उत्तर चुनें।",
+           "voice_dependency": "ऐप के Python में requirements-voice.txt इंस्टॉल करके पुनः चालू करें।",
+           "voice_paused": "आवाज़ रुकी है या 20 प्रयासों की सीमा पूरी है। पुनः कनेक्ट करने से सीमा नहीं बदलती।"},
+    "hi-en": {"mic_help": "Microphone help / WAV upload karein",
+              "mic_note": "Recorder error Gnani transcription se pehle hoti hai. App ko Chrome ya Edge mein directly localhost (ya HTTPS) par kholein. Site aur Windows microphone permission aur input device check karein. Embedded preview recording support na kare. Permission badalne ke baad recorder reset karein ya synthetic WAV upload karein. Verification proof mat bolein.",
+              "recorder_reset": "Recorder aur draft reset karein", "upload_wav": "Ya WAV upload karein (mono, 16-bit PCM, 16 kHz; maximum 15 seconds)",
+              "test_speech": "Speech playback test karein (credits lagenge)", "stt_error": "Transcription fail hui.", "tts_error": "Speech audio nahi ban saki.",
+              "voice_timeout": "Gnani connection ya response timeout hua. Audio success confirm nahi hai. Network/service check karke Retry voice connection use karein. Automatic retry nahi hua.",
+              "voice_authentication": "Gnani ne access reject kiya. Local key aur account permissions check karein.",
+              "voice_quota": "Gnani ka credit/rate-limit response aaya. Retry se pehle dashboard check karein.",
+              "voice_not_configured": "Local .env mein valid GNANI_API_KEY rakhein. Chat mein mat bhejein.",
+              "voice_invalid_audio": "Nonempty mono, 16-bit PCM, 16 kHz WAV use karein, maximum 15 seconds. Service request nahi hui.",
+              "voice_invalid_text": "Nonempty reply choose karein, maximum 800 characters.",
+              "voice_dependency": "App ke Python environment mein requirements-voice.txt install karke restart karein.",
+              "voice_paused": "Voice paused hai ya 20-attempt limit hui. Retry se budget renew nahi hota."},
+}.items():
+    TEXT[language].update(values)
+
 # Tutorial and transparent response routing; no account data is used in labels.
 for language, values in {
     "en": {"demo": "Use guided demo orders", "demo_title": "Try a complete example", "scenario": "Demo scenario",

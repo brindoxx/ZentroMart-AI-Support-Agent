@@ -6,6 +6,7 @@ from io import BytesIO
 import json
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
+from types import SimpleNamespace
 import wave
 
 from zentromart.config import PROJECT_ROOT, FROZEN_REFERENCE_DATE
@@ -13,7 +14,7 @@ from zentromart.calculations import BusinessCalendar
 from zentromart.contracts import AgentRequest
 from zentromart.demo import DemoGateway, SCENARIOS
 from zentromart.retrieval import BM25Index, load_search_documents
-from zentromart.voice import GnaniSpeech, VoiceError, VoiceSession, pcm_from_wav, wav_from_pcm
+from zentromart.voice import GnaniSpeech, VoiceError, VoiceSession, pcm_from_wav, wav_from_pcm, service_error_code
 from zentromart.workflows import SupportAgent
 
 
@@ -91,6 +92,29 @@ class DemoTests(unittest.TestCase):
 
 
 class VoiceTests(unittest.TestCase):
+    def test_service_errors_use_safe_specific_categories(self):
+        self.assertEqual(service_error_code(TimeoutError("SECRET")), "timeout")
+        for status, expected in ((401, "authentication"), (403, "authentication"), (402, "quota"), (429, "quota"), (500, "service_failed")):
+            error = RuntimeError("SECRET_PROVIDER_PAYLOAD")
+            error.response = SimpleNamespace(status_code=status)
+            self.assertEqual(service_error_code(error), expected)
+
+    def test_tts_timeout_is_not_reported_as_success_or_automatically_retried(self):
+        context = MagicMock()
+        context.__aenter__ = AsyncMock(side_effect=TimeoutError("SECRET"))
+        session = VoiceSession()
+        session.enabled = True
+        with patch("zentromart.voice.load_voice_key", return_value="test-key"), patch(
+                "websockets.asyncio.client.connect", return_value=context) as connect:
+            with self.assertRaisesRegex(VoiceError, "^timeout$"):
+                session.run("synthesize", "Hello", "en")
+        self.assertEqual(connect.call_count, 1)
+        self.assertEqual(session.attempts, 1)
+        self.assertTrue(session.blocked)
+        session.resume()
+        self.assertFalse(session.blocked)
+        self.assertEqual(session.attempts, 1)
+
     def test_audio_validation_before_spending_credits(self):
         self.assertEqual(len(pcm_from_wav(recording())), 320)
         for audio in (b"not a wav", recording(rate=8000), recording(frames=16 * 16000)):
@@ -222,6 +246,8 @@ class TutorialUITests(unittest.TestCase):
         self.assertTrue(app.button(key="transcribe").disabled)
         self.assertTrue(app.button(key="send_voice").disabled)
         self.assertTrue(app.button(key="speak").disabled)
+        self.assertTrue(app.button(key="test_speech").disabled)
+        self.assertTrue(app.button(key="recorder_reset").disabled)
         for value in ("9999", "8888"):
             app.text_input(key="verification").set_value(value)
             app.button(key="verify_submit").click().run()
@@ -231,6 +257,47 @@ class TutorialUITests(unittest.TestCase):
         app.checkbox(key="demo").check().run()
         app.button(key="demo_start").click().run()
         self.assertEqual(app.session_state.support.agent.state.phase, "locked")
+        self.assertFalse(app.exception)
+
+    def test_recorder_help_and_reset_do_not_spend_credits_or_renew_budget(self):
+        app = self.app()
+        app.checkbox(key="voice_enabled").check().run()
+        voice = app.session_state.voice_session
+        voice.attempts = 3
+        number = app.session_state.recording_number
+        with patch.object(VoiceSession, "run", side_effect=AssertionError("No service call")):
+            app.button(key="recorder_reset").click().run()
+        self.assertEqual(voice.attempts, 3)
+        self.assertEqual(app.session_state.recording_number, number + 1)
+        self.assertTrue(app.get("file_uploader"))
+        self.assertTrue(app.button(key="transcribe").disabled)
+        self.assertFalse(app.button(key="test_speech").disabled)
+        self.assertFalse(app.exception)
+
+    def test_tts_test_has_its_own_error_and_does_not_play_stale_audio(self):
+        app = self.app()
+        app.checkbox(key="voice_enabled").check().run()
+        app.session_state.voice_audio = wav_from_pcm(bytes(100))
+        with patch.object(VoiceSession, "run", side_effect=VoiceError("timeout")) as call:
+            app.button(key="test_speech").click().run()
+        self.assertEqual(call.call_args.args[:2], ("synthesize", "Hello. This is a ZentroMart voice test."))
+        self.assertIn("Speech playback generation failed", app.warning[0].value)
+        self.assertIn("timed out", app.warning[0].value)
+        self.assertFalse(app.get("audio"))
+        app.run()
+        self.assertTrue(app.warning)
+        self.assertFalse(app.exception)
+
+    def test_wav_fallback_uses_transcription_not_tts_and_shows_format_error(self):
+        app = self.app()
+        app.checkbox(key="voice_enabled").check().run()
+        with patch("streamlit.file_uploader", return_value=BytesIO(b"bad audio")):
+            app.run()
+            with patch.object(VoiceSession, "run", side_effect=VoiceError("invalid_audio")) as call:
+                app.button(key="transcribe").click().run()
+        self.assertEqual(call.call_args.args[:2], ("transcribe", b"bad audio"))
+        self.assertIn("Transcription failed", app.warning[0].value)
+        self.assertIn("16 kHz", app.warning[0].value)
         self.assertFalse(app.exception)
 
 

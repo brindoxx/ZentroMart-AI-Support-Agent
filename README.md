@@ -333,7 +333,11 @@ may contain verified order details, as disclosed by the voice consent control.
 There are 20 voice attempts per browser session, 800 characters per spoken reply,
 no automatic retries, and no transcript/audio files saved by the voice adapter.
 Clear/source/language changes discard pending audio and drafts, not usage limits.
-The adapter was tested with simulated services, **not your live Gnani account**.
+The adapter is covered by simulated-service tests. A live TTS attempt on 28 October
+timed out during connection, so successful live voice output is **not validated**.
+Microphone capture and Gnani synthesis are separate: recorder errors can happen
+before any Gnani request. The voice panel now includes microphone help/reset,
+a strictly validated WAV-upload alternative, and an explicit speech playback test.
 See the [Phase 13 guide and five-minute demo](docs/phase-13-voice-and-guided-demo.md).
 
 ### Review-driven fixes

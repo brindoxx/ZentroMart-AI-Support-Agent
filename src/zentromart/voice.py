@@ -22,6 +22,18 @@ class VoiceError(RuntimeError):
     """Safe static error code only. Never wrap raw network/provider errors."""
 
 
+def service_error_code(error):
+    """Classify failures without exposing headers, keys or provider payloads."""
+    if isinstance(error, TimeoutError):
+        return "timeout"
+    status = getattr(getattr(error, "response", None), "status_code", None)
+    if status in {401, 403}:
+        return "authentication"
+    if status in {402, 429}:
+        return "quota"
+    return "service_failed"
+
+
 def pcm_from_wav(audio):
     if not isinstance(audio, bytes) or not 44 <= len(audio) <= 500000:
         raise VoiceError("invalid_audio")
@@ -118,8 +130,8 @@ class GnaniSpeech:
                         sender.cancel()
                         with suppress(asyncio.CancelledError):
                             await sender
-        except Exception:
-            raise VoiceError("service_failed") from None
+        except Exception as error:
+            raise VoiceError(service_error_code(error)) from None
 
     async def synthesize(self, text, language):
         if not isinstance(text, str) or not text.strip() or len(text) > 800 or language not in {"en", "hi", "hi-en"}:
@@ -153,8 +165,8 @@ class GnaniSpeech:
                         if data.get("is_final") is True:
                             return wav_from_pcm(bytes(output))
                     raise ValueError
-        except Exception:
-            raise VoiceError("service_failed") from None
+        except Exception as error:
+            raise VoiceError(service_error_code(error)) from None
 
 
 class VoiceSession:
@@ -188,5 +200,5 @@ class VoiceSession:
             client = GnaniSpeech(key)
             return asyncio.run(getattr(client, action)(value, language))
         except VoiceError as error:
-            self.blocked = str(error) == "service_failed"
+            self.blocked = str(error) in {"service_failed", "timeout", "authentication", "quota"}
             raise

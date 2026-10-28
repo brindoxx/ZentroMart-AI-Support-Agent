@@ -105,6 +105,39 @@ conversation claim.
 
 ## Verification status and remaining work
 
+### Follow-up: recorder recovery and live connection investigation (28 October)
+
+The screenshot's error was inside Streamlit's microphone recorder, before a WAV
+existed or transcription could be requested. That is not a TTS response. Browser
+permission, a missing/unavailable device, insecure origins or embedded-browser
+restrictions can prevent microphone capture; the screenshot alone cannot identify
+which one occurred. See [browser microphone requirements](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia).
+
+The voice panel now provides native recorder reset, troubleshooting instructions
+and a WAV uploader (uploaded audio takes precedence over a microphone clip).
+The same server-side mono/16-bit/16-kHz/15-second checks apply to uploads before
+key loading or credits. Reset clears pending audio/draft, not attempts or lockouts.
+The server cannot override browser or Windows microphone permissions. Try the app
+directly at `http://localhost:8501` in Chrome/Edge, grant microphone permission,
+check Windows microphone privacy/input-device settings, then reset the recorder.
+Remote deployments need HTTPS for browser microphone access.
+
+A separate **Test speech playback (uses credits)** button sends only a short
+fixed test sentence, without requiring a chat reply or recording. Synthesis and
+transcription failures have separate persistent notices. Timeouts, access
+rejections and credit/rate-limit HTTP responses now have safe specific categories;
+raw provider messages and keys remain hidden. Failed playback discards stale
+audio instead of presenting it as a new result. Retry is explicit, never automatic.
+
+A bounded live English TTS attempt failed after approximately eight seconds. A
+second handshake-only diagnostic also timed out before any HTTP status was
+received. This establishes a connection timeout from this environment—not an
+invalid key, depleted credits, or a successful synthesis. No audio was generated
+or saved locally. Provider billing cannot be determined from this failure.
+The endpoint/request/chunk protocol was checked against the [Gnani TTS documentation](https://docs.gnani.ai/api/TTS/tts-websocket).
+No live microphone recording or successful end-to-end STT/TTS is claimed.
+The historical initial-phase test counts below are retained for context.
+
 The full offline suite passes **211 tests**, including 13 new demo/voice checks.
 Tests cover demo isolation, proof gates, greetings, masked UI flows, shared model
 budgets, lockouts across source changes, opt-in playback, disabled voice during
