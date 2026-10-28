@@ -91,6 +91,28 @@ class LLMDialogueTests(unittest.TestCase):
         self.assertEqual(agent.last_trace.reason, "invalid_dialogue_proposal")
         self.assertFalse(reply.tool_calls)
 
+    def test_thanks_after_private_exchange_gets_progress_without_private_history(self):
+        agent, model = self.agent(result(action="respond", topic="general", reply="You're welcome! Anything else I can help with?"))
+        self.turn(agent, "Order 12345678")
+        self.turn(agent, "0042")
+        answer = self.turn(agent, "thanks")
+        self.assertEqual(answer.reply, "You're welcome! Anything else I can help with?")
+        sent = model.plan.call_args.args[0]
+        payload = json.loads(sent.message)
+        self.assertEqual(payload["conversation_progress"], "continuing")
+        self.assertEqual(payload["earlier_customer_messages"], [])
+        self.assertIn("do not greet them again", sent.instructions)
+        for private in ("12345678", "0042", "subtotal_inr", '"status": "delivered"'):
+            self.assertNotIn(private, sent.message)
+        self.assertEqual(agent.last_trace.reason, "dialogue_respond")
+
+    def test_reset_clears_progress_and_new_greeting_stays_model_written(self):
+        agent, model = self.agent(result(action="respond", topic="general", reply="Hello! What brought you here?"))
+        self.turn(agent, "Order 12345678")
+        self.turn(agent, "/reset")
+        self.turn(agent, "hello")
+        self.assertEqual(json.loads(model.plan.call_args.args[0].message)["conversation_progress"], "new")
+
     def test_model_cannot_fill_missing_fact_during_internal_clarification_retry(self):
         agent, model = self.agent(result(action="search", category="fashion", reply=""),
                                   result(category="fashion", placed_on="2026-10-10", reply="Is that right?"))
