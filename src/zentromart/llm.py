@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from importlib import import_module, metadata
 import json
 from time import perf_counter, sleep
-from typing import Protocol
+from typing import Generic, Protocol, TypeVar
 
 from .config import LLMSettings
 from .contracts import DECISIONS
@@ -68,9 +68,12 @@ class ModelDraft:
     evidence: tuple[str, ...]
 
 
+DraftType = TypeVar("DraftType")
+
+
 @dataclass(frozen=True)
-class ModelResult:
-    draft: ModelDraft
+class ModelResult(Generic[DraftType]):
+    draft: DraftType
     model_version: str | None
     attempts: int
     elapsed_seconds: float
@@ -165,7 +168,7 @@ def _error_code(exc: Exception) -> str:
     return "request_failed"
 
 
-def _decode(response) -> tuple[ModelDraft, dict[str, int | None]]:
+def _decode(response, parser=parse_draft):
     feedback = getattr(response, "prompt_feedback", None)
     reason = getattr(feedback, "block_reason", None)
     if reason and getattr(reason, "value", reason) != "BLOCK_REASON_UNSPECIFIED":
@@ -190,7 +193,10 @@ def _decode(response) -> tuple[ModelDraft, dict[str, int | None]]:
         if not isinstance(getattr(part, "text", None), str):
             raise ModelError("invalid_response")
         text.append(part.text)
-    draft = parse_draft("".join(text))
+    try:
+        draft = parser("".join(text))
+    except (ValueError, TypeError):
+        raise ModelError("invalid_response") from None
     metadata_value = getattr(response, "usage_metadata", None)
     usage = {}
     for name in ("prompt_token_count", "candidates_token_count", "thoughts_token_count", "total_token_count"):
@@ -205,6 +211,13 @@ class GeminiModel:
         self.settings = settings
 
     def generate(self, request: ModelRequest) -> ModelResult:
+        return self._generate(request, DRAFT_SCHEMA, parse_draft)
+
+    def plan(self, request: ModelRequest):
+        from .dialogue_contracts import PLAN_SCHEMA, parse_plan
+        return self._generate(request, PLAN_SCHEMA, parse_plan)
+
+    def _generate(self, request, schema, parser):
         if not isinstance(request, ModelRequest):
             raise ValueError("Expected a validated ModelRequest")
         started = perf_counter()
@@ -218,7 +231,7 @@ class GeminiModel:
                         contents=[{"role": "user", "parts": [{"text": request.message}]}],
                         config={"system_instruction": request.instructions,
                                 "response_mime_type": "application/json",
-                                "response_json_schema": deepcopy(DRAFT_SCHEMA),
+                                "response_json_schema": deepcopy(schema),
                                 "max_output_tokens": self.settings.max_output_tokens,
                                 "candidate_count": 1,
                                 "thinking_config": {"thinking_level": "minimal"},
@@ -230,7 +243,7 @@ class GeminiModel:
                         sleep(2 ** (attempt - 1))
                         continue
                     raise ModelError(code) from None
-                draft, usage = _decode(response)
+                draft, usage = _decode(response, parser)
                 version = getattr(response, "model_version", None)
                 return ModelResult(draft, version if isinstance(version, str) else None,
                                    attempt, round(perf_counter() - started, 3), usage)
