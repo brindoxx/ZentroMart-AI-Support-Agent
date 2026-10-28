@@ -6,6 +6,39 @@ retailer in the supplied From Tokens to Transformers dataset.
 Built as part of IIT Guwahati Consulting & Analytics Club's From Tokens to
 Transformers course.
 
+## Current interface: live composer
+
+The primary app now has one bottom composer: **text + dictation mic + voice
+conversation + Send**. There are no Gemini/Gnani-enable sidebar switches or
+Transcribe/Send-reviewed panels. A one-time in-chat confirmation discloses cloud
+processing; the browser's own microphone permission is still required.
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-ui.txt
+.\.venv\Scripts\python.exe -m streamlit run streamlit_app.py
+```
+
+**Fully restart** after updating: `streamlit_app.py` now launches the Streamlit
+ASGI app and its same-origin `/api/voice` relay. Browser refresh alone cannot
+add that route to an old running process. Use `http://127.0.0.1:8501` locally.
+
+- **Mic:** stream to Gnani while speaking; completed phrases appear in the
+  composer. Click mic again to finish, edit if needed, then Send.
+- **Voice:** Gnani detects the pause, the same assistant answers, TTS plays, then
+  listening resumes automatically. Click voice again to end. No per-turn
+  transcribe/send/speak clicks. No simultaneous listening during playback.
+- Gnani emits completed speech segments, **not word-by-word interim text**. Text
+  appears when those segments arrive; the UI does not fake incremental words.
+- Only Gnani performs STT/TTS. No browser Web Speech or alternate-provider
+  fallback. The Gnani key stays on the server, never in the composer.
+
+See [live-composer architecture and brief alignment](docs/live-composer.md).
+The older record/review interface is preserved as `legacy_streamlit_app.py` for
+regression comparisons, not the default user interface. Phase descriptions below
+document that earlier UI; their provider-checkbox instructions no longer apply
+to the primary composer. Successful live end-to-end Gnani audio remains to be
+verified; earlier connection failures are not hidden by this redesign.
+
 ## Current progress
 
 **Phases 1–12 complete: multilingual Streamlit chat and verified mock support.**

@@ -86,7 +86,7 @@ class DialogueIntegrationTests(unittest.TestCase):
 
     @unittest.skipIf(AppTest is None, "Install requirements-ui.txt for Streamlit UI tests")
     def test_streamlit_generated_followups_for_unseen_item(self):
-        app = AppTest.from_file(str(PROJECT_ROOT / "streamlit_app.py"), default_timeout=15)
+        app = AppTest.from_file(str(PROJECT_ROOT / "legacy_streamlit_app.py"), default_timeout=15)
         app.secrets["llm"] = {"provider": "gemini", "model": "gemini-test", "api_key": "test-key"}
         app.run()
         app.checkbox(key="cloud").check().run()

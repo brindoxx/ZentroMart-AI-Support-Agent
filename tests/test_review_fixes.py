@@ -202,7 +202,7 @@ except ImportError:
 class ReviewedUITests(unittest.TestCase):
     def test_return_help_collects_requirements_without_policy_jargon_or_api_calls(self):
         with patch("zentromart.web_session.GeminiModel", side_effect=AssertionError("No model needed")):
-            app = AppTest.from_file(str(PROJECT_ROOT / "streamlit_app.py"), default_timeout=15).run()
+            app = AppTest.from_file(str(PROJECT_ROOT / "legacy_streamlit_app.py"), default_timeout=15).run()
             app.chat_input[0].set_value("hello").run()
             app.chat_input[0].set_value("check a return").run()
             self.assertIn("what item", app.session_state.support.messages[-1]["text"])
@@ -213,7 +213,7 @@ class ReviewedUITests(unittest.TestCase):
             self.assertFalse(app.exception)
 
     def test_explicit_voice_recovery_button_does_not_clear_budget(self):
-        app = AppTest.from_file(str(PROJECT_ROOT / "streamlit_app.py"), default_timeout=15).run()
+        app = AppTest.from_file(str(PROJECT_ROOT / "legacy_streamlit_app.py"), default_timeout=15).run()
         app.checkbox(key="voice_enabled").check().run()
         app.session_state.voice_session.blocked = True
         app.session_state.voice_session.attempts = 3

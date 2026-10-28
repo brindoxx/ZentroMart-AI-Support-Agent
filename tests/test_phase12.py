@@ -225,7 +225,7 @@ except ImportError:
 @unittest.skipIf(AppTest is None, "Install requirements-ui.txt for Streamlit UI tests")
 class StreamlitTests(unittest.TestCase):
     def app(self):
-        return AppTest.from_file(str(PROJECT_ROOT / "streamlit_app.py"), default_timeout=15).run()
+        return AppTest.from_file(str(PROJECT_ROOT / "legacy_streamlit_app.py"), default_timeout=15).run()
 
     def test_startup_offline_and_cloud_consent_notice(self):
         with patch("zentromart.web_session.load_llm_settings", side_effect=AssertionError("No key read")):
@@ -242,7 +242,7 @@ class StreamlitTests(unittest.TestCase):
     def test_opted_in_public_chat_uses_server_side_secrets_and_selected_language(self):
         from zentromart.llm import ModelDraft, ModelResult
         for language in LANGUAGES:
-            app = AppTest.from_file(str(PROJECT_ROOT / "streamlit_app.py"), default_timeout=15)
+            app = AppTest.from_file(str(PROJECT_ROOT / "legacy_streamlit_app.py"), default_timeout=15)
             app.secrets["llm"] = {"provider": "gemini", "model": "gemini-test", "api_key": "test-key"}
             app.session_state.language = language
             app.run()

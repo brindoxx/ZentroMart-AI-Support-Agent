@@ -18,7 +18,7 @@ except ImportError:
 @unittest.skipIf(AppTest is None, "Install requirements-voice.txt")
 class VoiceModeUITests(unittest.TestCase):
     def app(self):
-        app = AppTest.from_file(str(PROJECT_ROOT / "streamlit_app.py"), default_timeout=15)
+        app = AppTest.from_file(str(PROJECT_ROOT / "legacy_streamlit_app.py"), default_timeout=15)
         app.secrets["llm"] = {"provider": "gemini", "model": "gemini-test", "api_key": "test-key"}
         app.run()
         app.checkbox(key="voice_enabled").check().run()

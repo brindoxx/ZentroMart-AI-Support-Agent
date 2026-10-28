@@ -206,7 +206,7 @@ except ImportError:
 @unittest.skipIf(AppTest is None, "Install requirements-voice.txt")
 class TutorialUITests(unittest.TestCase):
     def app(self):
-        return AppTest.from_file(str(PROJECT_ROOT / "streamlit_app.py"), default_timeout=15).run()
+        return AppTest.from_file(str(PROJECT_ROOT / "legacy_streamlit_app.py"), default_timeout=15).run()
 
     def test_demo_selector_and_verification_are_usable_without_keys(self):
         app = self.app()
