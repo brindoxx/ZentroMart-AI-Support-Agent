@@ -43,12 +43,29 @@ class ComposerUITests(unittest.TestCase):
         self.assertFalse(self.app.exception)
 
     def test_offline_start_has_no_provider_switches_and_waits_for_explicit_consent(self):
+        self.assertFalse(self.app.get("segmented_control"))
         self.assertEqual({c.key for c in self.app.checkbox}, {"demo", "tickets"})
         self.assertTrue(self.mounts[-1]["disabled"])
         self.assertFalse(self.app.session_state.support.model.enabled)
         self.event("submitted", {"id": "no-consent", "text": "hi", "source": "typed"})
         self.assertEqual(self.app.session_state.support.model.calls, 0)
         self.assertFalse(self.app.session_state.speech.enabled)
+
+    def test_voice_reply_language_switches_without_ending_conversation(self):
+        model = self.allow()
+        model._client.plan.side_effect = [
+            result(action="respond", topic="general", language="hi-en", reply="Bilkul, batayein."),
+            result(action="respond", topic="general", language="en", reply="Of course, tell me more.")]
+        with patch.object(VoiceSession, "run", return_value=wav_from_pcm(bytes(100))) as speech:
+            self.event("action", {"id": "switch-one", "action": "voice"})
+            self.event("submitted", {"id": "switch-one", "source": "voice", "text": "aap madad kar sakte ho"})
+            self.assertEqual(self.app.session_state.language, "hi-en")
+            self.event("action", {"id": "switch-two", "action": "voice", "automatic": True})
+            self.event("submitted", {"id": "switch-two", "source": "voice", "text": "Can you help me please"})
+            self.assertEqual(self.app.session_state.language, "en")
+            self.assertEqual([call.args[2] for call in speech.call_args_list], ["hi-en", "en"])
+        self.assertTrue(self.app.session_state.live_mode)
+        self.assertEqual(model.calls, 2)
 
     def test_text_uses_gemini_once_without_tts_or_sidebar_permission(self):
         model = self.allow()

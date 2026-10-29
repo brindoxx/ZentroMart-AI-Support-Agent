@@ -47,6 +47,38 @@ class LLMDialogueTests(unittest.TestCase):
         self.assertEqual(model.plan.call_count, 3)
         model.generate.assert_not_called()
 
+    def test_auto_language_follows_model_each_turn_without_extra_calls(self):
+        agent, model = self.agent(
+            result(action="respond", topic="general", language="hi-en", reply="Bilkul, batayein."),
+            result(action="respond", topic="general", language="hi", reply="ज़रूर, बताइए।"),
+            result(action="respond", topic="general", language="en", reply="Of course, tell me more."))
+        for text, language in (("aap madad kar sakte ho", "hi-en"), ("आप मदद कर सकते हैं", "hi"),
+                               ("Can we continue in English please", "en")):
+            answer = self.turn(agent, text)
+            self.assertEqual(answer.language, language)
+            self.assertEqual(agent.backend.language, language)
+            self.assertEqual(json.loads(model.plan.call_args.args[0].message)["language_mode"], "auto")
+        self.assertEqual(model.plan.call_count, 3)
+
+    def test_auto_language_survives_generated_order_command_and_numeric_proof(self):
+        agent, model = self.agent(result(action="order", topic="order_status", language="hi-en", reply=""),
+                                  result(action="order", topic="order_status", language="en", reply=""))
+        self.assertEqual(self.turn(agent, "kya aap mera order kahaan hai pata kar sakte hain").language, "hi-en")
+        self.assertIsNone(agent.backend.preferred_language)
+        self.assertEqual(self.turn(agent, "12345678").language, "hi-en")
+        self.assertEqual(self.turn(agent, "0042").language, "hi-en")
+        self.assertTrue(agent.backend.state.verified)
+        model.plan.assert_called_once()
+        self.assertEqual(self.turn(agent, "Where is my order now").language, "en")
+        self.assertNotIn("0042", model.plan.call_args.args[0].message)
+
+    def test_fixed_language_still_rejects_mismatched_model_plan(self):
+        agent, model = self.agent(result(action="respond", language="hi", reply="नमस्ते।"))
+        agent.backend.set_language("en")
+        answer = self.turn(agent, "hello")
+        self.assertEqual(answer.language, "en")
+        self.assertEqual(agent.last_trace.reason, "invalid_dialogue_proposal")
+
     def test_other_topics_use_grounded_answerer_not_a_return_script(self):
         agent, model = self.agent(result(action="search", topic="refunds", reply=""))
         model.generate.return_value = ModelResult(ModelDraft("answer", "UPI takes one to three business days. [REF-2]", "en", ("REF-2",)), "test", 1, 0.01, {})

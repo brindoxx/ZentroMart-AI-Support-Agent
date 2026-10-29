@@ -5,7 +5,21 @@
 The default app has one bottom text composer with a mic, a separate waveform
 voice-conversation button and Send. Provider checkboxes, recorder/upload panels
 and Transcribe/Send-reviewed/Read-aloud buttons are removed from the primary UI.
-Language, New/Clear conversation and optional demo settings stay in the sidebar.
+New/Clear conversation and optional demo settings stay in the sidebar. Replies
+automatically follow English, Hindi or Hinglish; no language selection is needed.
+Gemini selects the language in its existing structured dialogue proposal each
+turn, including explicit requests to switch languages. The same language feeds
+grounded answers, local order prompts and TTS, without resetting verification or
+adding a language-detection API call. Numeric proofs stay local and preserve the
+current language. Local/private turns use lightweight language cues, not an LLM
+translation of private records. Ambiguous short replies keep the current language.
+
+Voice capture uses the existing en-IN mixed Hindi/English STT path each turn,
+rather than locking capture to the last reply language. That path may render
+Hindi speech in Roman script, so automatic reply selection depends on the actual
+transcript; Devanagari output can be requested explicitly. Live accent/code-switch
+recognition and pronunciation still need provider testing; mocked tests only
+confirm the application routing and language propagation.
 
 Before the first cloud action, a single in-chat confirmation discloses Gemini,
 Gnani, credits and the fact that spoken replies can contain verified synthetic

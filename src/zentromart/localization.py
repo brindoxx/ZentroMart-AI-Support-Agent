@@ -26,6 +26,10 @@ def choose_language(text, previous="en", preferred=None):
         return "hi"
     if re.search(r"\b(?:mera|meri|mere|mujhe|chahiye|hai|hain|nahi|karo|batao|karna|kya)\b", text, re.I):
         return "hi-en"
+    # Private turns cannot send proofs to an LLM. Clear English sentences switch
+    # back; IDs, commands and ambiguous short replies retain continuity.
+    if not text.lstrip().startswith("/") and len(re.findall(r"\b[a-zA-Z]+\b", text)) >= 3:
+        return "en"
     return previous
 
 

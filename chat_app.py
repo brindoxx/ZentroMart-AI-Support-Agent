@@ -86,6 +86,7 @@ def submit(text, *, spoken=False):
             raise VoiceError("consent_required")
         with st.spinner(labels["busy"]):
             support.submit(text)
+        st.session_state.language = support.agent.language
         if support.agent.state.phase in {"proof", "locked"}:
             end_voice()
             return
@@ -113,11 +114,11 @@ for name, value in (("language", "en"), ("demo", False), ("tickets", False), ("c
 
 with st.sidebar:
     st.subheader("ZentroMart", divider="green")
-    language = st.segmented_control("Language / भाषा", ("en", "hi", "hi-en"), key="language", required=True,
-        format_func=lambda code: {"en": "English", "hi": "हिन्दी", "hi-en": "Hinglish"}[code], on_change=change_settings)
+    language = st.session_state.language
     if language not in TEXT:
         st.stop()
     labels = TEXT[language]
+    st.caption("Reply language follows your messages automatically · English / हिन्दी / Hinglish")
     st.button(labels["clear"], key="clear", on_click=clear_chat, icon=":material/add:", width="stretch")
     with st.expander("Demo options"):
         demo = st.checkbox(labels["demo"], key="demo", on_change=change_source)
@@ -138,7 +139,7 @@ try:
         sessions[source] = BrowserSession(SupportAgent(BM25Index(documents), model, settings.reference_date,
                                          calendar=calendar, gateway=gateway), model)
     support = st.session_state.support = sessions[source]
-    support.preferences(language, cloud=st.session_state.chat_cloud_consent, tickets=tickets)
+    support.preferences(None, cloud=st.session_state.chat_cloud_consent, tickets=tickets)
 except Exception:
     st.error(labels["error"])
     st.stop()
@@ -200,7 +201,9 @@ if action and accept_event(action, "action"):
                 raise VoiceError("paused")
             if kind == "voice" and (support.model.blocked or support.model.limit - support.model.calls < 2):
                 raise VoiceError("paused")
-            token = REGISTRY.issue(speech, language, kind, action["id"])
+            # en-IN is the relay's existing mixed Hindi/English, Latin-script
+            # transcription path. Do not lock recognition to the previous reply.
+            token = REGISTRY.issue(speech, "en", kind, action["id"])
             st.session_state.live_token = token
             st.session_state.live_connection = {"id": action["id"], "token": token}
         except VoiceError as error:

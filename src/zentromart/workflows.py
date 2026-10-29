@@ -90,7 +90,7 @@ class SupportAgent:
         self.language = choose_language("", self.language, language)
         self.preferred_language = language
         self.public.default_language = language
-        self.public.state.language = language
+        self.public.state.language = self.language
 
     def clear_tool_trace(self):
         """Discard ephemeral executor arguments after UI consumption."""
