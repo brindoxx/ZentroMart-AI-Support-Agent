@@ -32,7 +32,7 @@ add that route to an old running process. Use `http://127.0.0.1:8501` locally.
 - Only Gnani performs STT/TTS. No browser Web Speech or alternate-provider
   fallback. The Gnani key stays on the server, never in the composer.
 
-See [live-composer architecture and brief alignment](docs/live-composer.md).
+Development guides under `docs/` are local-only learning notes, excluded from Git.
 The older record/review interface is preserved as `legacy_streamlit_app.py` for
 regression comparisons, not the default user interface. Phase descriptions below
 document that earlier UI; their provider-checkbox instructions no longer apply
@@ -86,7 +86,7 @@ Python executable directly. Phases 1–5 need no API keys, GPU, or cloud service
 Inspection shows schemas and aggregate counts without exposing customer rows or
 practice answers. Validation runs the supplied deeper checks, including order
 math, evidence references, and verification gates. Both commands return a
-nonzero exit code on failure. See the [Phase 2 learning guide](docs/phase-02-understanding-the-data.md)
+nonzero exit code on failure. See the local Phase 2 learning guide
 for table relationships, empty-cell interpretation, and examples.
 
 ## Run the evaluation baseline
@@ -100,7 +100,7 @@ The default offline baseline runs 52 questions and 96 conversation turns. It alw
 for clarification; it tests the framework and is not a working support agent.
 Redacted reports are saved in ignored `artifacts/evals/` run folders. Lexical
 checks require manual review, and an evaluation exit code of zero is not a
-quality pass. See the [Phase 3 learning guide](docs/phase-03-evaluating-the-agent.md)
+quality pass. See the local Phase 3 learning guide
 for metric definitions, session handling, and limitations.
 
 ## Prepare the knowledge base
@@ -114,7 +114,7 @@ Ingestion turns the 21 KB documents into 84 sections, retaining metadata,
 document-level context, tables, source line ranges, and historical policies.
 It reads only `kb/*.md` and writes UTF-8 JSONL plus a manifest in ignored
 `artifacts/knowledge/` run folders. It does not yet perform search or embeddings.
-See the [Phase 4 learning guide](docs/phase-04-preparing-the-knowledge-base.md)
+See the local Phase 4 learning guide
 for chunk examples and why preserving policy context matters.
 
 ## Search policies and public products
@@ -131,7 +131,7 @@ include the passage, metadata, and matching-term contributions. Private customer
 and order records are excluded. The initial Hit@5 is 80.9% across 47 practice
 questions with gold evidence, falling to 70.2% for their ASR-style text; these
 are retrieval results, not answer accuracy. Five no-gold questions are excluded
-from these relevance metrics. See the [Phase 5 learning guide](docs/phase-05-keyword-search.md)
+from these relevance metrics. See the local Phase 5 learning guide
 for scoring, measured recall, examples, and limitations.
 
 ## Add semantic and hybrid search
@@ -148,7 +148,7 @@ Its first use downloads the model; document embeddings are cached under ignored
 `artifacts/`. Add `--offline` after the initial download. `--rebuild-embeddings`
 recomputes document vectors if a cache is damaged. Query embeddings are not
 persisted. BM25 remains the default and needs none of these model dependencies.
-See the [Phase 6 learning guide](docs/phase-06-semantic-and-hybrid-search.md)
+See the local Phase 6 learning guide
 for prefixes, cosine similarity, reciprocal rank fusion, caching, and comparison
 methodology.
 
@@ -171,7 +171,7 @@ context. Topic and dates are supplied explicitly: there is no automatic intent
 extraction, identity verification, deadline calculation, or generated answer yet.
 `--retriever semantic --offline` and `--retriever hybrid --offline` also work after
 model installation. Raw `search` and retrieval metrics remain unchanged.
-See the [Phase 7 learning guide](docs/phase-07-policy-precedence.md) for the rules,
+See the local Phase 7 learning guide for the rules,
 source provenance, boundary examples, and limitations. Core BM25 policy handling
 needs no API keys or model download.
 
@@ -209,7 +209,7 @@ The adapter validates structured JSON, bounds input/output and request attempts,
 disables automatic tool calling, and sanitizes provider failures. It does not
 change the requested model or switch to a paid fallback. The evaluator still
 uses its offline baseline: a model connection is not yet a grounded support agent.
-Read the [Phase 8 learning guide](docs/phase-08-gemini-connection.md).
+Read the local Phase 8 learning guide.
 
 ## Generate a grounded policy reply (Phase 9)
 
@@ -230,7 +230,7 @@ Gemini evaluation requires an explicit case cap and stops on the first agent
 error. Reports retain scores, outcome counters, model/prompt/index configuration,
 and token counts, but omit question/reply text and credentials. The six-case
 development sample is not a full benchmark or proof of semantic correctness.
-Read the [Phase 9 learning guide](docs/phase-09-grounded-replies.md) for measured
+Read the local Phase 9 learning guide for measured
 results, citation limitations, and examples. `--offline` only keeps optional
 semantic embeddings offline; Gemini answering still needs the network.
 
@@ -252,7 +252,7 @@ identity; no private order tools are connected yet. Up to four minimized custome
 turns are used as context, with fresh retrieval each time. No assistant answers
 become policy evidence, and the application writes no transcript. Memory
 minimization is not comprehensive PII detection. `answer` and `--agent gemini`
-remain stateless for comparison. See the [Phase 10 learning guide](docs/phase-10-conversation-state.md).
+remain stateless for comparison. See the local Phase 10 learning guide.
 
 ## Repository layout
 
@@ -260,7 +260,7 @@ remain stateless for comparison. See the [Phase 10 learning guide](docs/phase-10
 dataset/                 Supplied synthetic dataset and documentation
 src/zentromart/          Python package and central configuration
 tests/                   Configuration, data, evaluation, retrieval, and policy tests
-docs/                    Phase-by-phase learning notes
+docs/                    Local-only phase-by-phase notes (ignored by Git)
 evals/                   Evaluation usage and adapter guidance
 report/                  Final report workspace
 .env.example             Public configuration template
@@ -296,7 +296,7 @@ Ticket writing is disabled by default. Add `--write-tickets` to allow **local mo
 tickets under ignored `artifacts/tickets/`; this does not contact a real support
 team. The assistant cannot cancel an order, approve a claim, or pay a refund.
 Calculations are conditional estimates against the frozen 2026-10-20 snapshot.
-See the [Phase 11 learning guide](docs/phase-11-verified-support-workflows.md).
+See the local Phase 11 learning guide.
 
 ## Streamlit frontend (Phase 12)
 
@@ -328,7 +328,7 @@ the most recent 24 messages, with no transcript export or disk saving. Voice,
 hosting, and production authentication are not part of this local UI.
 
 The native theme uses Streamlit configuration, not a separate frontend framework
-or injected CSS. See the [Phase 12 learning guide](docs/phase-12-streamlit-and-languages.md)
+or injected CSS. See the local Phase 12 learning guide
 for the design, language rules, tests, and limitations.
 
 ## Guided demos and optional voice
@@ -351,7 +351,7 @@ the backend still retains and evaluates the original evidence IDs.
 
 Planning and answering share the existing 20-generation session budget; a public
 policy answer normally needs two generations. Clearing chat or switching demo
-mode does not renew the budget. See [LLM-led conversation](docs/llm-led-conversation.md)
+mode does not renew the budget. See the local LLM-led conversation guide
 for the architecture, examples, safety boundaries and test coverage. Existing CLI
 and evaluation modes retain their previous behavior for baseline comparisons.
 
@@ -373,7 +373,7 @@ timed out during connection, so successful live voice output is **not validated*
 Microphone capture and Gnani synthesis are separate: recorder errors can happen
 before any Gnani request. The voice panel now includes microphone help/reset,
 a strictly validated WAV-upload alternative, and an explicit speech playback test.
-See the [Phase 13 guide and five-minute demo](docs/phase-13-voice-and-guided-demo.md).
+See the local Phase 13 guide and five-minute demo.
 
 ### Voice conversation versus dictation
 
@@ -386,12 +386,12 @@ for the next turn; End restores typing. Browser autoplay may require Play.
 This mode is turn-based, not continuous listening, full-duplex audio or barge-in.
 It pauses for typed verification and shares the existing provider budgets.
 Automatic sending and speaking require explicit mode activation. See the
-[voice-conversation guide](docs/voice-conversation.md) for design, privacy,
+local voice-conversation guide for design, privacy,
 failure recovery, costs, tests and the remaining live-service limitations.
 
 ### Review-driven fixes
 
-The [review audit](docs/review-fixes.md) records each confirmed issue, correction,
+The local review audit records each confirmed issue, correction,
 and regression test, including findings that were not reproducible as reported.
 Return help now asks about the item and relevant dates rather than requesting
 policy-selection fields. Missing local voice keys and bad clips are recoverable;

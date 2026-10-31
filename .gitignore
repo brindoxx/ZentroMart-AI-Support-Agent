@@ -13,6 +13,12 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
+.coverage.*
+coverage.xml
+.ruff_cache/
+.mypy_cache/
+.tox/
+.nox/
 build/
 dist/
 
@@ -20,10 +26,19 @@ dist/
 artifacts/
 logs/
 .cache/
+tmp/
+temp/
 dataset/tools/tickets_created.csv
+
+# Local development notes; keep README, report and submission outputs trackable
+/docs/
 
 # Editor and operating-system files
 .idea/
 .vscode/
 .DS_Store
 Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
