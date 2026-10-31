@@ -66,6 +66,15 @@ def main() -> None:
     retrieval_eval.add_argument("--asr", action="store_true")
     comparison = commands.add_parser("compare-retrieval", help="Compare BM25, semantic, and hybrid on text and ASR")
     comparison.add_argument("--top-k", type=int, default=5)
+    answer_comparison = commands.add_parser("compare-answers", help="Compare prompt-only Gemini with RAG on identical questions")
+    answer_comparison.add_argument("--live", action="store_true")
+    answer_comparison.add_argument("--max-cases", type=int, required=True)
+    answer_comparison.add_argument("--top-k", type=int, default=5)
+    answer_comparison.add_argument("--asr", action="store_true")
+    answer_comparison.add_argument("--retriever", choices=("bm25", "semantic", "hybrid"), default="hybrid")
+    answer_comparison.add_argument("--offline", action="store_true")
+    answer_comparison.add_argument("--interval-seconds", type=float, default=6)
+    answer_comparison.add_argument("--max-generations", type=int, default=104)
     for command in (search, retrieval_eval, policy_search, answer, chat):
         command.add_argument("--retriever", choices=("bm25", "semantic", "hybrid"), default="bm25")
     for command in (search, retrieval_eval, comparison, policy_search, answer, chat):
@@ -73,7 +82,7 @@ def main() -> None:
         command.add_argument("--rebuild-embeddings", action="store_true", help="Recompute document embeddings")
     evaluation = commands.add_parser("evaluate", help="Run offline practice evaluation")
     evaluation.add_argument("--suite", choices=("all", "questions", "conversations"), default="all")
-    evaluation.add_argument("--agent", choices=("baseline", "gemini", "gemini-stateful", "support"), default="baseline")
+    evaluation.add_argument("--agent", choices=("baseline", "prompt-only", "gemini", "gemini-stateful", "support"), default="baseline")
     evaluation.add_argument("--write-tickets", action="store_true", help="Allow local mock ticket writes only with --agent support")
     evaluation.add_argument("--live", action="store_true", help="Allow Gemini calls when --agent gemini is selected")
     evaluation.add_argument("--max-cases", type=int, help="Evaluate only a deterministic prefix of cases")
@@ -81,13 +90,17 @@ def main() -> None:
     evaluation.add_argument("--offline", action="store_true", help="Keep only the embedding model offline; Gemini still uses the network")
     evaluation.add_argument("--asr", action="store_true", help="Use ASR-style text for questions")
     evaluation.add_argument("--top-k", type=int, default=5)
+    evaluation.add_argument("--interval-seconds", type=float, default=6)
+    evaluation.add_argument("--max-generations", type=int, default=104)
     args = parser.parse_args()
-    if args.command in {"answer", "chat"} and not args.live:
+    if args.command in {"answer", "chat", "compare-answers"} and not args.live:
         parser.error("answer/chat requires --live: questions and public evidence will be sent to Gemini")
-    if args.command == "evaluate" and args.agent in {"gemini", "gemini-stateful", "support"} and not args.live:
+    if args.command == "evaluate" and args.agent in {"prompt-only", "gemini", "gemini-stateful", "support"} and not args.live:
         parser.error("--agent gemini requires --live and consumes API quota")
     if args.command == "evaluate" and args.agent == "baseline" and (args.live or args.retriever != "bm25" or args.offline):
         parser.error("Live/retriever options require --agent gemini; baseline has no retriever or model")
+    if args.command == "evaluate" and args.agent == "prompt-only" and (args.suite != "questions" or args.retriever != "bm25" or args.offline):
+        parser.error("prompt-only requires --suite questions and has no retriever or offline encoder")
     if args.command == "chat" and args.write_tickets and not args.support:
         parser.error("--write-tickets requires --support")
     if args.command == "evaluate" and args.write_tickets and args.agent != "support":
@@ -105,6 +118,47 @@ def main() -> None:
             return
         settings = load_settings()
         settings.validate_dataset_layout()
+        if args.command == "compare-answers" or (args.command == "evaluate" and args.agent == "prompt-only"):
+            from .baseline import PromptOnlyAgent
+            from .config import load_llm_settings
+            from .llm import GeminiModel, sdk_version
+            from dataclasses import replace
+            from .evaluation.pacing import PacedModel
+            from .evaluation.runner import run_evaluation, save_report, format_summary
+            if type(args.max_cases) is not int or not 1 <= args.max_cases <= 52 or not 1 <= args.top_k <= 20:
+                raise ValueError("Use max-cases from 1 to 52 and top-k from 1 to 20")
+            model_settings = replace(load_llm_settings(), retries=0)
+            model = PacedModel(GeminiModel(model_settings), interval_seconds=args.interval_seconds,
+                               max_generations=args.max_generations)
+            model_configuration = {"provider": model_settings.provider, "model": model_settings.model,
+                                   "sdk_version": sdk_version(), "timeout_seconds": model_settings.timeout_seconds,
+                                   "max_output_tokens": model_settings.max_output_tokens, "retries": model_settings.retries}
+            if args.command == "compare-answers":
+                from .evaluation.comparison import compare_answers
+                from .grounding import GroundedAgent
+                from .retrieval import build_indexes, load_search_documents
+                index = build_indexes(load_search_documents(settings.dataset_dir), settings.artifacts_dir,
+                                      (args.retriever,), offline=args.offline)[args.retriever]
+                report = compare_answers(settings, lambda: PromptOnlyAgent(model),
+                    lambda: GroundedAgent(index, model, settings.reference_date, top_k=args.top_k),
+                    max_cases=args.max_cases, top_k=args.top_k, asr=args.asr)
+                report["model_configuration"] = model_configuration
+                report["baseline_configuration"] = PromptOnlyAgent(model).configuration()
+                report["rag_configuration"] = GroundedAgent(index, model, settings.reference_date, top_k=args.top_k).configuration()
+                print(format_summary(report["baseline"]))
+                if report["rag"]:
+                    print(format_summary(report["rag"]))
+                failed = not report["comparable"]
+            else:
+                report = run_evaluation(settings, factory=lambda: PromptOnlyAgent(model), agent_name="prompt_only",
+                                        suite="questions", max_cases=args.max_cases, top_k=args.top_k,
+                                        asr=args.asr, stop_on_error=True)
+                report["agent_configuration"] = {**PromptOnlyAgent(model).configuration(), **model_configuration}
+                print(format_summary(report))
+                failed = bool(report["summary"]["error_rows"])
+            report["pacing"] = model.configuration()
+            print(f"Redacted report: {save_report(report, settings.artifacts_dir)}")
+            raise SystemExit(1 if failed else 0)
         if args.command in {"search", "evaluate-retrieval", "compare-retrieval", "policy-search", "answer", "chat"}:
             from .retrieval import build_indexes, load_search_documents
             if args.top_k < 1:

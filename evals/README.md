@@ -10,13 +10,33 @@ agent context.
 | Adapter | Behaviour | Limitation |
 | --- | --- | --- |
 | `baseline` | Always clarifies; no model or tools | Wiring check, NOT the required prompt-only LLM baseline |
+| `prompt-only` | Gemini with a support prompt and the current question only | No documents, history, retrieval, tools or gold labels; evaluation only |
 | `gemini` | Stateless public-policy RAG | No private tools or dialogue planner |
 | `gemini-stateful` | Public-policy RAG with bounded context | Different controller from the primary UI |
 | `support` | Verified mock workflows and public-policy generation | Uses SupportAgent directly, not the UI's LLMConversation wrapper |
 
 A completed run is not an accuracy claim. Existing small development runs do not
 establish unseen-question performance. A paired prompt-only LLM versus RAG
-comparison remains outstanding.
+measurement remains outstanding; the implementation is available below.
+
+## Prompt-only versus RAG
+
+```powershell
+.\.venv\Scripts\python.exe -m zentromart evaluate --agent prompt-only --live --suite questions --max-cases 3
+.\.venv\Scripts\python.exe -m zentromart compare-answers --live --max-cases 52 --retriever hybrid --interval-seconds 12 --max-generations 104
+```
+
+The paired command uses the same model, generation settings, question order,
+input variant and scoring for both arms. RAG is the stateless grounded answerer
+to isolate document grounding; full conversational-agent evaluation is separate.
+The report retains both scores, case IDs, fingerprints, settings and failures.
+A partial run is labelled as such and is never represented as the full set.
+
+Both arms share a generation cap and serial pacing. Provider retries are disabled
+for this comparison, and the first failure stops further spending. Configure the
+interval and cap against your project's actual RPM, TPM and remaining daily quota
+in AI Studio; pacing does not discover or guarantee those limits. Other clients
+using the same project share that quota. No live benchmark is run automatically.
 
 ## Offline checks
 
@@ -92,8 +112,8 @@ reply text, speech files and retrieved source chunks.
 
 ## Outstanding evaluation work
 
-1. Add a real prompt-only LLM adapter without retrieval or gold labels.
-2. Compare it with RAG using the same cases, model and scoring rules; report both
+1. Run the implemented prompt-only/RAG comparison after approving the quota budget.
+2. Review its results using the same cases, model and scoring rules; report both
    scores, denominators, failures and limitations.
 3. Evaluate the exact UI dialogue controller with fresh state per conversation
    and the same proof/privacy/tool safeguards.
