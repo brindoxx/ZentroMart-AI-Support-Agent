@@ -9,7 +9,7 @@ It is not a declaration that the project is submission-ready.
 | --- | --- | --- |
 | LLM API and support role | Gemini transport, structured dialogue and grounded prompts | Implemented; access depends on configuration and account |
 | First reply identifies AI | UI banner identifies AI; planner says it is AI | First returned response is not explicitly guaranteed/tested to disclose AI; banner alone is insufficient for audio |
-| Prompt-only baseline versus RAG | Real prompt-only adapter and paired same-model/case comparison command with pacing and generation cap | Implemented; live measurement awaits project limits and quota approval; clarification-only wiring check remains separate |
+| Prompt-only baseline versus RAG | Completed paired 52-question experiment; real LLM baseline, hybrid RAG, same model/cases and rate guards | Decision agreement 32.7% vs 48.1%; lexical fact coverage 12.2% vs 38.8%; see ../evals/results.md; wider quality improvement remains |
 | Document chunks and vector index | Main app defaults to cached BM25 + multilingual E5 hybrid retrieval; explicit method configuration | Implemented; real cached-encoder offline smoke test passed; full quality evaluation remains |
 | Grounded answers and sources | Policy precedence, evidence bundle, citations and source panel | Implemented; wider factual evaluation and entailment review needed |
 | Conversation and tools | Shared create_agent factory for UI, voice, CLI chat and support evaluation | Implemented with fresh per-conversation private state and parity tests; batch runner can reuse factory when built |
@@ -36,9 +36,9 @@ dataset intact until external dataset setup is verified.
 
 ## Recommended completion order
 
-1. Run the implemented paired comparison within the project's actual RPM, TPM
-   and remaining daily quota. Shared agent construction and vector integration
-   are implemented; do not substitute mocked scores for live measurements.
+1. Use the completed paired comparison as measured evidence, not a readiness
+   claim. Review its eight citation fallbacks and wrong decisions. Shared agent
+   construction and vector integration are implemented.
 2. Evaluate the shared support controller on complete conversations, preserving
    verification, language continuity, calculations and executor-recorded tools.
 3. Build the audio-folder runner using Gnani only. Save reply text, speech,
@@ -55,9 +55,10 @@ Cover the problem, dataset, chosen model, the four required implementation areas
 actual architecture, baseline versus RAG results, failures, improvements, limits
 and bonus work. Distinguish retrieval scores from answer accuracy and unit tests.
 
-Existing local evaluation artifacts are development evidence. They are not the
-required complete prompt-only-versus-RAG experiment. Never fabricate results or
-present repeatedly inspected small prefixes as comprehensive benchmarks.
+The completed 52-question prompt-only-versus-RAG experiment is documented in
+`evals/results.md`, with zero provider errors and explicit limitations. It is
+practice-set development evidence, not a held-out benchmark or a full UI-agent
+score. Never fabricate results or promote lexical agreement to semantic accuracy.
 
 ## Demo: maximum two minutes
 

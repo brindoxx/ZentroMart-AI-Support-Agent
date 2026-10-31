@@ -16,8 +16,9 @@ agent context.
 | `support` | Shared factory and LLMConversation controller used by UI, voice and CLI chat | Fresh private state per conversation; explicit run-wide generation budget |
 
 A completed run is not an accuracy claim. Existing small development runs do not
-establish unseen-question performance. A paired prompt-only LLM versus RAG
-measurement remains outstanding; the implementation is available below.
+establish unseen-question performance. A full 52-question prompt-only versus
+stateless hybrid-RAG experiment is complete: see [measured results](results.md)
+for scores, denominators, reproducibility information and limitations.
 
 ## Prompt-only versus RAG
 
@@ -112,7 +113,7 @@ reply text, speech files and retrieved source chunks.
 
 ## Outstanding evaluation work
 
-1. Run the implemented prompt-only/RAG comparison after approving the quota budget.
+1. Review the completed prompt-only/RAG comparison before spending quota on reruns.
 2. Review its results using the same cases, model and scoring rules; report both
    scores, denominators, failures and limitations.
 3. Run `evaluate --agent support` for the shared UI dialogue controller. It follows

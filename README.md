@@ -181,8 +181,11 @@ See [evaluation](evals/README.md) for commands and quota controls.
 The evaluation-only `prompt-only` adapter calls Gemini without documents or tools.
 `compare-answers` compares it with stateless RAG on identical questions and model
 settings. Full `support` evaluation measures the conversational agent separately.
-Live scores still need an explicitly approved quota budget; mocked tests are not
-benchmark results.
+A full 52-question live comparison is recorded in [measured results](evals/results.md):
+decision agreement improved from 32.7% to 48.1%, and lexical required-fact
+coverage from 12.2% to 38.8%. These are separate diagnostics, not overall answer
+accuracy or scores for the full conversation agent. Eight RAG citation fallbacks
+remain an improvement target. Additional live runs consume project quota.
 
 ## Privacy, limits and known limitations
 
