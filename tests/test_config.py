@@ -1,4 +1,4 @@
-"""Check date and path boundaries used by all subsequent phases."""
+"""Check the shared dataset date and path configuration boundaries."""
 
 from datetime import date
 from pathlib import Path

@@ -1,6 +1,6 @@
 """Dataset-specific evidence precedence and explicitly scoped applicability.
 
-This prepares evidence for the future generator; it neither authenticates a
+This prepares evidence for grounded generation; it neither authenticates a
 caller nor calculates deadlines. Topics/facts are supplied by application code,
 not inferred from evaluation labels or private order tables.
 """

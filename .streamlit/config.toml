@@ -1,4 +1,4 @@
-# Local-only capstone demo. Hosting and production authentication are Phase 15.
+# Local-only capstone demo; public hosting and production authentication are not configured.
 [server]
 address = "127.0.0.1"
 headless = true

@@ -1,65 +1,28 @@
 # ZentroMart AI Support Agent
 
-A multilingual customer support capstone for **ZentroMart**, the fictional Indian
-retailer in the supplied From Tokens to Transformers dataset.
+A text and voice support assistant for ZentroMart, the fictional Indian retailer
+in the IIT Guwahati Consulting & Analytics Club x Gnani.ai capstone. It combines
+Gemini conversation planning, document-grounded answers, verified synthetic
+order lookups and Gnani speech recognition and synthesis.
 
-Built as part of IIT Guwahati Consulting & Analytics Club's From Tokens to
-Transformers course.
+This is a local educational application, not a production service. Tickets are
+local mock records, not messages to a real team. The agent cannot issue refunds
+or cancel orders. See [submission readiness](report/README.md) for outstanding
+requirements; the application is not yet a complete submission.
 
-## Current interface: live composer
+## What it does
 
-The primary app now has one bottom composer: **text + dictation mic + voice
-conversation + Send**. There are no Gemini/Gnani-enable sidebar switches or
-Transcribe/Send-reviewed panels. A one-time in-chat confirmation discloses cloud
-processing; the browser's own microphone permission is still required.
+- Discuss delivery, returns, refunds, cancellations, warranty and public products.
+- Retrieve company sources and show supporting policy sections.
+- Ask natural follow-up questions using bounded conversation context.
+- Verify an order before revealing synthetic records or calculated estimates.
+- Follow English, Hindi and Hinglish, including changes within a conversation.
+- Accept typed messages, editable dictation or an automatic voice conversation.
+- Create local handover tickets when enabled and confirmed by the actual tool.
 
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-ui.txt
-.\.venv\Scripts\python.exe -m streamlit run streamlit_app.py
-```
+## Install and run
 
-**Fully restart** after updating: `streamlit_app.py` now launches the Streamlit
-ASGI app and its same-origin `/api/voice` relay. Browser refresh alone cannot
-add that route to an old running process. Use `http://127.0.0.1:8501` locally.
-
-- **Mic:** stream to Gnani while speaking; completed phrases appear in the
-  composer. Click mic again to finish, edit if needed, then Send.
-- **Voice:** Gnani detects the pause, the same assistant answers, TTS plays, then
-  listening resumes automatically. Click voice again to end. No per-turn
-  transcribe/send/speak clicks. No simultaneous listening during playback.
-- Gnani emits completed speech segments, **not word-by-word interim text**. Text
-  appears when those segments arrive; the UI does not fake incremental words.
-- Only Gnani performs STT/TTS. No browser Web Speech or alternate-provider
-  fallback. The Gnani key stays on the server, never in the composer.
-
-Development guides under `docs/` are local-only learning notes, excluded from Git.
-The older record/review interface is preserved as `legacy_streamlit_app.py` for
-regression comparisons, not the default user interface. Phase descriptions below
-document that earlier UI; their provider-checkbox instructions no longer apply
-to the primary composer. Successful live end-to-end Gnani audio remains to be
-verified; earlier connection failures are not hidden by this redesign.
-
-## Current progress
-
-**Phases 1–12 complete: multilingual Streamlit chat and verified mock support.**
-The project supports BM25, local multilingual semantic search, and hybrid rank
-fusion over policy sections and public product facts, with separate retrieval
-evaluation. A deterministic layer now prioritizes policy authority and applies
-scoped historical, festive, and marketplace exceptions to explicit scenario facts.
-Gemini now generates public-policy replies with source-ID checks, safe
-clarification fallbacks, and an opt-in memory-backed conversation mode. Verified
-mock order lookup, deterministic calculations, and opt-in local handover tickets
-are now available in a Streamlit-only frontend with English, Hindi, and Hinglish
-reply preferences. Gnani WebSocket voice is implemented with offline tests;
-live recording/playback verification is still pending.
-
-The planned agent will answer from company policies, verify callers before
-showing order details, create handover tickets, and support English, Hindi,
-Hinglish, and Gnani voice input/output.
-
-## Local setup (PowerShell)
-
-Use Python 3.11 or newer. The initial setup was verified with Python 3.13.
+Use Python 3.11 or newer; development has used Python 3.13. In PowerShell:
 
 ```powershell
 git clone https://github.com/brindoxx/ZentroMart-AI-Support-Agent.git
@@ -67,357 +30,178 @@ cd ZentroMart-AI-Support-Agent
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 Copy-Item .env.example .env
-.\.venv\Scripts\python.exe -m zentromart
-.\.venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-The repository is currently private; cloning requires authorized GitHub access.
-Activation of the virtual environment is optional: the commands above use its
-Python executable directly. Phases 1–5 need no API keys, GPU, or cloud services.
+Cloning requires access while the repository is private. Do not overwrite an
+existing `.env`. Add Gemini and Gnani keys there, never in chat or Git.
 
-## Inspect and validate the dataset
+Obtain the course dataset separately. Its extracted directory must contain
+`kb/`, `data/`, `practice/` and `tools/`. Set `DATASET_DIR` to that location;
+the local default is `dataset`. Its supplied documentation defines the schema.
 
 ```powershell
-.\.venv\Scripts\python.exe -m zentromart inspect
-.\.venv\Scripts\python.exe -m zentromart inspect --json
 .\.venv\Scripts\python.exe -m zentromart validate
-```
-
-Inspection shows schemas and aggregate counts without exposing customer rows or
-practice answers. Validation runs the supplied deeper checks, including order
-math, evidence references, and verification gates. Both commands return a
-nonzero exit code on failure. See the local Phase 2 learning guide
-for table relationships, empty-cell interpretation, and examples.
-
-## Run the evaluation baseline
-
-```powershell
-.\.venv\Scripts\python.exe -m zentromart evaluate
-.\.venv\Scripts\python.exe -m zentromart evaluate --suite questions --asr
-```
-
-The default offline baseline runs 52 questions and 96 conversation turns. It always asks
-for clarification; it tests the framework and is not a working support agent.
-Redacted reports are saved in ignored `artifacts/evals/` run folders. Lexical
-checks require manual review, and an evaluation exit code of zero is not a
-quality pass. See the local Phase 3 learning guide
-for metric definitions, session handling, and limitations.
-
-## Prepare the knowledge base
-
-```powershell
-.\.venv\Scripts\python.exe -m zentromart ingest
-.\.venv\Scripts\python.exe -m zentromart ingest --section RET-2
-```
-
-Ingestion turns the 21 KB documents into 84 sections, retaining metadata,
-document-level context, tables, source line ranges, and historical policies.
-It reads only `kb/*.md` and writes UTF-8 JSONL plus a manifest in ignored
-`artifacts/knowledge/` run folders. It does not yet perform search or embeddings.
-See the local Phase 4 learning guide
-for chunk examples and why preserving policy context matters.
-
-## Search policies and public products
-
-```powershell
-.\.venv\Scripts\python.exe -m zentromart search "reverse pickup fee" --top-k 3
-.\.venv\Scripts\python.exe -m zentromart search "ELE-0012" --json
-.\.venv\Scripts\python.exe -m zentromart evaluate-retrieval
-.\.venv\Scripts\python.exe -m zentromart evaluate-retrieval --asr
-```
-
-BM25 searches 84 policy/support sections and 70 public catalog rows. JSON results
-include the passage, metadata, and matching-term contributions. Private customer
-and order records are excluded. The initial Hit@5 is 80.9% across 47 practice
-questions with gold evidence, falling to 70.2% for their ASR-style text; these
-are retrieval results, not answer accuracy. Five no-gold questions are excluded
-from these relevance metrics. See the local Phase 5 learning guide
-for scoring, measured recall, examples, and limitations.
-
-## Add semantic and hybrid search
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-semantic.txt
-.\.venv\Scripts\python.exe -m zentromart search "Nobody collected my return" --retriever semantic
-.\.venv\Scripts\python.exe -m zentromart search "reverse pickup fee" --retriever hybrid
-.\.venv\Scripts\python.exe -m zentromart compare-retrieval
-```
-
-The optional semantic extra runs pinned multilingual E5-small locally on the CPU.
-Its first use downloads the model; document embeddings are cached under ignored
-`artifacts/`. Add `--offline` after the initial download. `--rebuild-embeddings`
-recomputes document vectors if a cache is damaged. Query embeddings are not
-persisted. BM25 remains the default and needs none of these model dependencies.
-See the local Phase 6 learning guide
-for prefixes, cosine similarity, reciprocal rank fusion, caching, and comparison
-methodology.
-
-At top-K 5, original-question Hit@5 is 80.9% for BM25, 78.7% for semantic,
-and 83.0% for hybrid. For ASR-style text it is 70.2%, 83.0%, and 78.7%, respectively.
-These are development retrieval results across 47 gold-evidence questions,
-not chatbot accuracy. The full comparison and limitations are in the Phase 6 guide.
-
-## Prepare applicable policy evidence
-
-```powershell
-.\.venv\Scripts\python.exe -m zentromart policy-search "electronics return window" --topic return_window --category electronics --delivered-on 2026-07-31
-.\.venv\Scripts\python.exe -m zentromart policy-search "fashion returns" --topic return_window --category fashion --placed-on 2026-10-15 --json
-.\.venv\Scripts\python.exe -m zentromart policy-search "Assured warranty" --topic warranty --sku ELE-0004
-```
-
-The evidence bundle places governing policies above FAQs and marketing, excludes
-superseded passages outside explicit exceptions, and flags missing scenario
-context. Topic and dates are supplied explicitly: there is no automatic intent
-extraction, identity verification, deadline calculation, or generated answer yet.
-`--retriever semantic --offline` and `--retriever hybrid --offline` also work after
-model installation. Raw `search` and retrieval metrics remain unchanged.
-See the local Phase 7 learning guide for the rules,
-source provenance, boundary examples, and limitations. Core BM25 policy handling
-needs no API keys or model download.
-
-## Configuration
-
-`src/zentromart/config.py` loads `.env` from the repository root. Environment
-variables override `.env` values. Relative paths resolve from the repository
-root, so running commands from another folder does not change the dataset path.
-
-| Setting | Default | Purpose |
-| --- | --- | --- |
-| `DATASET_DIR` | `dataset` | Supplied documents, tables, practice cases, and tools |
-| `ARTIFACTS_DIR` | `artifacts` | Future generated indexes and evaluation results |
-| `DATASET_REFERENCE_DATE` | `2026-10-20` | Frozen date used by dataset policy calculations |
-
-A different reference date is rejected to prevent incorrect policy calculations.
-The Gemini adapter reads the model variables separately, only when requested.
-Gnani remains reserved for the voice phases. Never commit `.env` or real credentials.
-
-## Check the Gemini connection (Phase 8)
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-llm.txt
-.\.venv\Scripts\python.exe -m zentromart llm-check
-.\.venv\Scripts\python.exe -m zentromart llm-check --live
-```
-
-Set `LLM_PROVIDER=gemini`, `LLM_MODEL=gemini-3.5-flash-lite`, and `LLM_API_KEY`
-in the ignored local `.env` file. The first check only inspects configuration;
-`--live` sends a small synthetic connection test to Google and consumes API quota.
-No dataset or customer records are sent by this check. Model access and free-tier
-quota depend on the Google project; a configuration check is not proof of access.
-
-The adapter validates structured JSON, bounds input/output and request attempts,
-disables automatic tool calling, and sanitizes provider failures. It does not
-change the requested model or switch to a paid fallback. The evaluator still
-uses its offline baseline: a model connection is not yet a grounded support agent.
-Read the local Phase 8 learning guide.
-
-## Generate a grounded policy reply (Phase 9)
-
-```powershell
-.\.venv\Scripts\python.exe -m zentromart answer "Is pickup free for change-of-mind fashion returns?" --topic return_fee --live
-.\.venv\Scripts\python.exe -m zentromart answer "Electronics return window?" --topic return_window --category electronics --delivered-on 2026-07-31 --live --json
-.\.venv\Scripts\python.exe -m zentromart evaluate --agent gemini --live --suite questions --max-cases 6
-```
-
-`--live` explicitly allows sending the current question and selected public
-passages to Gemini. `--language en`, `hi`, or `hi-en` can set reply language.
-Typed scenario fields are not caller verification and are not automatically
-extracted from the question. Missing context, unavailable applicable policies,
-over-budget input, and invalid citations produce safe fallbacks; model/provider
-errors remain errors. No history, private order table, or tools enter generation.
-
-Gemini evaluation requires an explicit case cap and stops on the first agent
-error. Reports retain scores, outcome counters, model/prompt/index configuration,
-and token counts, but omit question/reply text and credentials. The six-case
-development sample is not a full benchmark or proof of semantic correctness.
-Read the local Phase 9 learning guide for measured
-results, citation limitations, and examples. `--offline` only keeps optional
-semantic embeddings offline; Gemini answering still needs the network.
-
-## Keep follow-up context in memory (Phase 10)
-
-```powershell
-.\.venv\Scripts\python.exe -m zentromart chat --live
-.\.venv\Scripts\python.exe -m zentromart evaluate --agent gemini-stateful --live --suite conversations --max-cases 6
-```
-
-In chat, try `How long do UPI refunds take?`, then `And cards?`. Use `/reset`
-to clear the conversation and `/quit` to exit. For returns, the agent can collect
-a category and an explicit `YYYY-MM-DD` date over separate turns. Narrow routing
-and slot patterns are not general intent/entity understanding. Product, order,
-and topic changes conservatively clear earlier scenario facts.
-
-One agent owns one session. External history and remembered claims never verify
-identity; no private order tools are connected yet. Up to four minimized customer
-turns are used as context, with fresh retrieval each time. No assistant answers
-become policy evidence, and the application writes no transcript. Memory
-minimization is not comprehensive PII detection. `answer` and `--agent gemini`
-remain stateless for comparison. See the local Phase 10 learning guide.
-
-## Repository layout
-
-```text
-dataset/                 Supplied synthetic dataset and documentation
-src/zentromart/          Python package and central configuration
-tests/                   Configuration, data, evaluation, retrieval, and policy tests
-docs/                    Local-only phase-by-phase notes (ignored by Git)
-evals/                   Evaluation usage and adapter guidance
-report/                  Final report workspace
-.env.example             Public configuration template
-pyproject.toml           Package metadata and dependencies
-requirements.txt         Complete app installation (UI, Gemini, voice)
-requirements-core.txt    Lightweight offline data/retrieval installation
-```
-
-The supplied dataset is kept together so its relative imports and offline mock
-tools continue to work. Its own README describes policy precedence, identity
-verification, and evaluation evidence IDs. All customer records are synthetic.
-
-## Verified support workflows (combined Phase 11)
-
-```powershell
-.\.venv\Scripts\python.exe -m zentromart chat --support --live
-```
-
-Ask about an order, supply its eight-digit ID, then provide one requested
-four-digit phone suffix or six-digit delivery pincode. Use only synthetic dataset
-examples. Two failed submissions lock that order for the session, even after
-`/reset`. This educational mock verification is **not production authentication**.
-
-After verification, `/items` lists item lines, `/item 1 1` selects line 1 and one
-unit, and `/reason change_of_mind` explicitly classifies a proposed return.
-`/policy QUESTION` clears private context and returns to general policy help.
-`/quit` exits. Private facts and proofs are never sent to Gemini; its connection
-is available only for public-policy questions. Private-workflow replies now use
-fixed English, Hindi, and Hinglish translations; `--language hi` or
-`--language hi-en` explicitly selects the CLI reply language.
-
-Ticket writing is disabled by default. Add `--write-tickets` to allow **local mock**
-tickets under ignored `artifacts/tickets/`; this does not contact a real support
-team. The assistant cannot cancel an order, approve a claim, or pay a refund.
-Calculations are conditional estimates against the frozen 2026-10-20 snapshot.
-See the local Phase 11 learning guide.
-
-## Streamlit frontend (Phase 12)
-
-From the repository root:
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-ui.txt
 .\.venv\Scripts\python.exe -m streamlit run streamlit_app.py
 ```
 
-Open `http://127.0.0.1:8501`. The app binds to the local computer, not your network.
-Choose English, Hindi, or Hinglish in the sidebar. Synthetic order verification
-works without Gemini; proofs use a masked form, are cleared after submission,
-and never appear in the displayed history. Only public policies/catalog and
-holidays are shared in a cache; each browser tab owns its agent and private state.
+Open `http://127.0.0.1:8501`. Restart the server after changing ASGI/WebSocket
+routes. The current relay deliberately accepts local origins only; public
+hosting needs a separate deployment/security review.
 
-Gemini is **off by default**. Enable the public-policy checkbox when you want model
-answers; it uses the existing local `.env` key unless a server-side Streamlit
-`[llm]` secret is configured, never a key pasted into chat. Public
-questions and bounded public context may then leave the device. The UI allows at
-most 20 generation attempts per session (bounded provider retries are separate),
-and pauses model access after a provider/configuration failure. Private workflows
-remain available. Clearing the conversation does not reset call limits or
-verification lockouts.
+## Using the assistant
 
-Local ticket creation is a separate, default-off checkbox. Tickets remain mock
-CSV records, not real human contact. Chat history is session-only, limited to
-the most recent 24 messages, with no transcript export or disk saving. Voice,
-hosting, and production authentication are not part of this local UI.
+Confirm the one-time in-chat cloud-processing notice before starting. Confirmation
+alone does not record audio or call a provider.
 
-The native theme uses Streamlit configuration, not a separate frontend framework
-or injected CSS. See the local Phase 12 learning guide
-for the design, language rules, tests, and limitations.
+- **Text:** type and press Send or Enter.
+- **Mic:** completed Gnani phrases appear in the input. Stop, edit if needed and
+  Send. Dictation alone does not call Gemini.
+- **Voice:** speak and pause. The same agent answers, Gnani TTS plays its reply,
+  and listening resumes after playback. Click the voice button again to stop.
+- **Order help:** enter the synthetic eight-digit order ID, then the requested
+  phone suffix or pincode in the masked field. Voice pauses for verification.
+  Never speak verification proofs.
+- **Demo options:** guided synthetic orders provide tutorial credentials. Mock
+  ticket creation is a separate opt-in and does not contact a human team.
 
-## Guided demos and optional voice
+Reply language follows the current message without a selector. Gemini chooses
+language in its existing dialogue request; private steps use local language cues,
+and numeric proofs preserve the current language. TTS uses the reply language.
+Mixed Hindi/English STT may return Roman script, so language choice depends on
+the actual transcript.
 
-Enable **Use guided demo orders** to see four invented tutorial scenarios and
-their public test credentials. They use a separate gateway, not private rows
-from the supplied dataset. Start an example, enter its displayed test suffix in
-the masked form, and ask the suggested follow-up. Verification is not bypassed.
-Demo tickets, when explicitly enabled, go to `artifacts/demo-tickets/`.
+Gnani provides completed phrases after pauses, not per-word interim text. Voice
+is sequential: listening stops during playback; interruption/barge-in is not
+implemented. The user reported a successful live loop; this is not a repeatable
+multi-language reliability benchmark.
 
-With **Use Gemini for natural conversation** enabled, Gemini understands the
-request and writes greetings and follow-up questions. This is not a separate
-hardcoded script for every item or intent. Grounded policy answers still use
-retrieved company evidence; verified order facts and calculations stay in the
-backend. With Gemini off, the existing local/offline workflows remain available.
-Reply captions distinguish model-written conversation, model-assisted routing,
-Gemini-generated policy answers, local workflows, and safe
-fallbacks. Inline citation brackets are moved into the source panel for display;
-the backend still retains and evaluates the original evidence IDs.
+## Architecture
 
-Planning and answering share the existing 20-generation session budget; a public
-policy answer normally needs two generations. Clearing chat or switching demo
-mode does not renew the budget. See the local LLM-led conversation guide
-for the architecture, examples, safety boundaries and test coverage. Existing CLI
-and evaluation modes retain their previous behavior for baseline comparisons.
+```text
+Text -----------------------------------------+
+Mic -> local WebSocket relay -> Gnani STT -----+-> BrowserSession
+                                                      |
+                                               LLMConversation
+                                                      |
+                    +---------------------------------+-------------------+
+                    |                                 |                   |
+             Gemini dialogue                   Public-policy RAG   Private workflows
+             and clarification                 retrieval + Gemini  verification, tools
+                    |                                 |            and calculations
+                    +---------------------------------+-------------------+
+                                                      |
+                                               Written response
+                                                      |
+                                           Gnani TTS in voice mode
+```
 
-For voice, install `requirements-voice.txt`, restart Streamlit, and enable
-**Gnani voice**. Your existing `GNANI_API_KEY` in `.env` is read only when needed.
-In dictation mode, record at most 15 seconds, click transcribe, review/edit the
-transcript, then send it. Reading the latest reply aloud is a separate explicit
-action in that mode. Both use Gnani credits; dictation does not automatically
-submit or play replies. The optional voice-conversation mode below automates those
-steps after explicit activation. Voice is disabled
-during verification; type proofs in the masked form. Selected replies sent to TTS
-may contain verified order details, as disclosed by the voice consent control.
+Gemini proposes a structured next step; application code validates and dispatches
+it. The model cannot authorize verification or invent executor results. Verified
+order records and proofs do not enter its dialogue prompt. Verified synthetic
+details can appear in replies sent to Gnani TTS, as disclosed before chat starts.
 
-There are 20 voice attempts per browser session, 800 characters per spoken reply,
-no automatic retries, and no transcript/audio files saved by the voice adapter.
-Clear/source/language changes discard pending audio and drafts, not usage limits.
-The adapter is covered by simulated-service tests. A live TTS attempt on 28 October
-timed out during connection, so successful live voice output is **not validated**.
-Microphone capture and Gnani synthesis are separate: recorder errors can happen
-before any Gnani request. The voice panel now includes microphone help/reset,
-a strictly validated WAV-upload alternative, and an explicit speech playback test.
-See the local Phase 13 guide and five-minute demo.
+### Retrieval and policy
 
-### Voice conversation versus dictation
+Ingestion preserves section IDs, source locations, status and effective dates.
+Current policies take precedence over agent guides, help, FAQs and marketing,
+with scoped historical, festive and marketplace exceptions. Historical support
+logs are not policy authority.
 
-The mic/dictation path keeps **transcribe -> review -> Send**. For an automatic
-conversation, enable Gemini and Gnani, then click **Start voice conversation**.
-Record and stop a turn: the app runs **STT -> support assistant -> TTS** and
-requests audio playback without extra transcribe/send/speak clicks. Record again
-for the next turn; End restores typing. Browser autoplay may require Play.
+**The main UI currently uses BM25.** Separate CLI paths support multilingual
+E5-small embeddings in a local NumPy cosine-search index and BM25 + E5 reciprocal
+rank fusion. Semantic/hybrid retrieval is not yet wired into the main chat;
+that integration is needed for the final agent's vector-RAG requirement.
 
-This mode is turn-based, not continuous listening, full-duplex audio or barge-in.
-It pauses for typed verification and shares the existing provider budgets.
-Automatic sending and speaking require explicit mode activation. See the
-local voice-conversation guide for design, privacy,
-failure recovery, costs, tests and the remaining live-service limitations.
+Calculations use **20 October 2026**, the dataset reference date. Business days
+are Monday-Saturday excluding supplied holidays; return windows use calendar days.
 
-### Review-driven fixes
+## Configuration
 
-The local review audit records each confirmed issue, correction,
-and regression test, including findings that were not reproducible as reported.
-Return help now asks about the item and relevant dates rather than requesting
-policy-selection fields. Missing local voice keys and bad clips are recoverable;
-service failures have an explicit retry button that preserves usage limits.
+Environment variables override `.env`. Relative paths resolve from the project
+root. The UI can also read a server-side Streamlit `[llm]` secret containing
+`provider`, `model` and `api_key`.
 
-The distribution name is now `zentromart-ai-support-agent`. The existing local
-checkout folder may still use the historical `ZetroMart` spelling; imports use
-`zentromart`, and no repository/checkout move is required. The UI dependency range
-allows Streamlit 1.x updates; behavior is currently verified on 1.66.1.
+| Variable | Purpose |
+| --- | --- |
+| `DATASET_DIR` | Extracted course dataset; default `dataset` |
+| `ARTIFACTS_DIR` | Generated indexes, evaluations and tickets; default `artifacts` |
+| `DATASET_REFERENCE_DATE` | Must remain `2026-10-20` |
+| `LLM_PROVIDER` | `gemini` |
+| `LLM_MODEL` | Explicit Gemini model ID; see the key-free example configuration |
+| `LLM_API_KEY` | Gemini key; access and quota depend on the account |
+| `LLM_TIMEOUT_SECONDS` | Timeout; default 20 seconds |
+| `LLM_MAX_OUTPUT_TOKENS` | Output budget; default 1024 |
+| `LLM_RETRIES` | Bounded transient-failure retries; default 1 |
+| `GNANI_API_KEY` | Key for both Gnani STT and TTS |
 
-## Remaining roadmap
+No model or speech provider is silently substituted. Gnani is the only speech
+provider; no browser Web Speech fallback is used.
 
-The former 11 remaining phases are consolidated into five larger phases, leaving
-more time to test and improve each part:
+## Diagnostics and tests
 
-| Phase | Scope | Status |
-| --- | --- | --- |
-| 11 (old 11–13) | Verified order workflows, handover tickets, deterministic calculations | Complete |
-| 12 (old 14–15) | Multilingual replies and Streamlit web interface | Complete |
-| 13 (old 16–17) | Gnani speech input/output and voice workflow | Implemented; live check pending |
-| 14 (old 18–19) | Expanded evaluation, failure analysis, and improvements | Next |
-| 15 (old 20–21) | Deployment, report, demonstration, and release preparation | Planned |
+```powershell
+# Offline inspection, validation and configuration check
+.\.venv\Scripts\python.exe -m zentromart inspect --json
+.\.venv\Scripts\python.exe -m zentromart validate
+.\.venv\Scripts\python.exe -m zentromart llm-check
 
-Phases 1–10 remain documented separately in `docs/`. The repository stays private
-until the user chooses to publish it.
+# Synthetic live check; consumes Gemini quota
+.\.venv\Scripts\python.exe -m zentromart llm-check --live
 
-Keep service credentials, generated conversation records, and ticket files out
-of this repository and the report. `.gitignore` excludes local credentials,
-virtual environments, generated artifacts, and mock ticket output.
+# Retrieval without generation
+.\.venv\Scripts\python.exe -m zentromart search "reverse pickup fee" --top-k 5
+
+# Optional semantic/hybrid retrieval and comparison
+.\.venv\Scripts\python.exe -m pip install -r requirements-semantic.txt
+.\.venv\Scripts\python.exe -m zentromart compare-retrieval
+
+# Offline regression tests
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+node tests/composer_frontend.mjs
+```
+
+Node.js is needed only for the frontend logic test, not the app. Semantic search
+downloads its pinned encoder on first use. After download, `--offline` prevents
+encoder downloads; it does not make Gemini offline. For dataset/BM25 work only,
+install `requirements-core.txt`. Other requirements files select model, UI,
+speech or semantic extras.
+
+CLI `answer`, `chat` and `chat --support` are diagnostic adapters. They do not use
+the UI's LLM-led dialogue controller, so their scores are not scores for the
+exact UI agent. See [evaluation](evals/README.md) for commands and interpretation.
+
+## Privacy, limits and known limitations
+
+- Use only synthetic data and consented recordings.
+- Each browser tab owns its chat, verified state and budgets.
+- Displayed chat is bounded to 24 messages; the UI saves no transcript/audio export.
+- Planning and answering share 20 generation attempts per browser session.
+  A policy question normally needs planning plus grounded generation.
+- Speech has a separate 20-attempt session budget, 15-second captures and
+  an 800-character limit per spoken reply.
+- Clearing chat does not reset provider budgets or verification lockouts.
+- Model failures currently pause further calls behind a generic warning.
+  Category-specific errors and explicit model recovery controls remain unfinished.
+  Failed voice turns are not automatically resubmitted.
+- Verification and text minimization are educational safeguards, not production
+  authentication or comprehensive PII protection.
+- Citation-ID validation does not prove the cited passage entails the answer.
+
+## Repository and submission
+
+| Path | Contents |
+| --- | --- |
+| `streamlit_app.py`, `chat_app.py` | ASGI launcher and primary UI |
+| `src/zentromart/` | Dialogue, retrieval, policy, tools, calculations and speech |
+| `tests/` | Offline unit, integration, UI and browser-logic checks |
+| `evals/` | Evaluation instructions and limitations |
+| `report/` | Requirement audit and report/demo preparation |
+| `.env.example` | Key-free configuration template |
+| `legacy_streamlit_app.py` | Older interface retained for regression tests only |
+
+Learning notes, credentials, environments, caches and runtime artifacts are
+ignored by Git. Supplied dataset documents are unchanged. Submission still needs
+an audio-folder batch command, sample outputs, a maximum four-page report,
+a maximum two-minute demo and a public repository. Exclude secrets, environments
+and a dataset copy from the submission ZIP; external dataset setup and packaging
+still require a clean-environment check.

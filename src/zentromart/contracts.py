@@ -1,4 +1,4 @@
-"""Agent inputs and outputs shared by evaluation and future application code.
+"""Agent inputs and outputs shared by evaluation and application code.
 
 No expected answer, evidence label, or verification secret is added to requests
 by the evaluator. Tool traces must be supplied by the executor, not invented by

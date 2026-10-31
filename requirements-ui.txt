@@ -1,2 +1,2 @@
-# Optional Streamlit interface and the existing Gemini public-policy adapter.
+# Streamlit text/voice UI, Gemini conversation and Gnani WebSocket transport.
 -e .[ui]

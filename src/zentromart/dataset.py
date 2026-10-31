@@ -1,6 +1,6 @@
 """Offline dataset inspection. Reports contain schema and counts, never row values.
 
-These helpers are for development and validation. The future customer-facing
+These helpers are for development and validation. The customer-facing
 agent must obtain private order data through the verified lookup tool instead.
 """
 
@@ -138,7 +138,7 @@ def inspect_dataset(root: Path) -> dict:
     documents, section_ids = [], []
     for path in sorted((root / "kb").glob("*.md")):
         text = path.read_text(encoding="utf-8-sig")
-        # Inventory only: full metadata parsing and retrieval chunking come in Phase 4.
+        # Inventory only; ingestion owns full metadata parsing and retrieval chunks.
         header = re.match(r"\A---\r?\n(.*?)\r?\n---(?:\r?\n|$)", text, re.S)
         if not header:
             raise ValueError(f"{path.name}: missing document metadata header")
