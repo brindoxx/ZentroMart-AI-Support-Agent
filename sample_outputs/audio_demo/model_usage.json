@@ -1,0 +1,8 @@
+{
+  "interval_seconds": 5.0,
+  "generation_limit": 24,
+  "attempted_generations": 6,
+  "input_tpm": 250000,
+  "token_guard": "conservative_utf8_bytes_plus_framing",
+  "quota_discovered": false
+}

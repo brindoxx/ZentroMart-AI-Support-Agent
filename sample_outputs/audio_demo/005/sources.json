@@ -1,0 +1,52 @@
+{
+  "cited_ids": [
+    "IDV-1",
+    "IDV-2"
+  ],
+  "agent_evidence_ids": [],
+  "chunks": [
+    {
+      "evidence_id": "IDV-1",
+      "title": "When verification is needed",
+      "text": "Verifying the customer\n\n# Verifying the customer\n\n## [IDV-1] When verification is needed\nBefore sharing anything about a specific order (status, items, address, amounts, refund details), verify the customer. General policy questions need no verification.",
+      "source": "kb/agent_identity_verification.md",
+      "metadata": {
+        "doc_id": "AGT-IDV",
+        "title": "Verifying the customer",
+        "doc_type": "agent_guide",
+        "audience": "agent",
+        "language": "en",
+        "version": "1.2",
+        "effective_from": "2026-07-01",
+        "status": "current",
+        "supersedes": null,
+        "superseded_by": null,
+        "source_sha256": "65080cf86c01fa180321c77ab27c7d1dffdf6b3bca915cf162bb8c1a694cf182",
+        "line_start": 14,
+        "line_end": 16
+      }
+    },
+    {
+      "evidence_id": "IDV-2",
+      "title": "How to verify",
+      "text": "Verifying the customer\n\n# Verifying the customer\n\n## [IDV-2] How to verify\nAsk for the order ID, then ask for **one** of: the last 4 digits of the registered phone number, or the delivery pincode for that order. Compare with the `phone_last4` or `delivery_pincode` fields from order lookup.",
+      "source": "kb/agent_identity_verification.md",
+      "metadata": {
+        "doc_id": "AGT-IDV",
+        "title": "Verifying the customer",
+        "doc_type": "agent_guide",
+        "audience": "agent",
+        "language": "en",
+        "version": "1.2",
+        "effective_from": "2026-07-01",
+        "status": "current",
+        "supersedes": null,
+        "superseded_by": null,
+        "source_sha256": "65080cf86c01fa180321c77ab27c7d1dffdf6b3bca915cf162bb8c1a694cf182",
+        "line_start": 17,
+        "line_end": 19
+      }
+    }
+  ],
+  "unresolved_ids": []
+}

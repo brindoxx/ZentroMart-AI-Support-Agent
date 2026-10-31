@@ -20,8 +20,9 @@ requirements; the application is not yet a complete submission.
 | Voice | Gnani STT and TTS through a local WebSocket relay; sequential listening and playback |
 | Dataset validation | 9 CSVs, 21 KB documents, 1,000 synthetic orders, 1,783 order items and 244 historical logs |
 | Practice evaluation | 52 questions and 23 conversations / 96 customer turns available; completed experiments below cover questions, not a full conversation benchmark |
-| Regression checks | 309 Python tests passed; frontend composer checks and dataset validation passed on 31 October 2026 |
-| Remaining deliverables | Audio-folder runner and saved sample outputs; report, demo and clean submission package |
+| Regression checks | 320 Python tests passed, including 11 batch-audio tests; frontend composer checks and dataset validation passed on 31 October 2026 |
+| Batch audio | Six live audio turns completed across three cases, including four-turn context/language switching; see sample outputs |
+| Remaining deliverables | Human speech review, final behaviour checks, report, demo and clean submission package |
 
 The measured experiments answer different questions: **does document grounding
 help Gemini?** and **which retriever should the app use?** Their scores must not
@@ -358,9 +359,10 @@ Detailed reports retain aggregate/per-case metrics and configuration, not raw
 prompts, replies, keys or proofs. Generated report JSON lives under ignored
 `artifacts/evals/`; tracked [answer results](evals/results.md) and
 [retrieval results](evals/retrieval-experiments.md) record the local run IDs and
-reproduction steps. The 309-test regression suite, frontend composer check and
+reproduction steps. The 320-test regression suite, frontend composer check and
 dataset validation passed after selecting BGE. A cached offline app-index smoke
-check also returned five results. No fresh full live voice benchmark was run.
+check also returned five results. The six-file batch check below is a small live
+pipeline test, not a full live voice benchmark.
 
 ## Privacy, limits and known limitations
 
@@ -392,23 +394,123 @@ check also returned five results. No fresh full live voice benchmark was run.
 | `legacy_streamlit_app.py` | Older interface retained for regression tests only |
 
 Learning notes, credentials, environments, caches and runtime artifacts are
-ignored by Git. Supplied dataset documents are unchanged. Submission still needs
-an audio-folder batch command, sample outputs, a maximum four-page report,
+ignored by Git, including local input recordings in `audio_samples/`. Supplied
+dataset documents are unchanged. Generated audio examples are in
+[sample outputs](sample_outputs/README.md). Submission still needs human speech
+review, final behaviour checks, a maximum four-page report,
 a maximum two-minute demo and a public repository. Exclude secrets, environments
 and a dataset copy from the submission ZIP; external dataset setup and packaging
 still require a clean-environment check.
 
-### What is the audio-folder runner?
+## Audio-folder evaluation
 
-It is a **batch evaluation entry point**, separate from the Streamlit interface.
-An evaluator supplies a folder of audio recordings; the runner should process
-each input through Gnani STT, the same support-agent factory and Gnani TTS, then
-save its reply text, generated speech, retrieved source chunks and per-file
-success/failure status in an output folder. It should report a failed input
-honestly rather than claiming speech was generated or a tool succeeded.
+The batch runner uses **Gnani STT -> the same support-agent factory -> Gnani TTS**,
+without opening Streamlit or recording a microphone. It saves each turn's reply
+text, generated speech, public source chunks and a safe status record.
 
-This lets evaluators test reproducibly without manually clicking through the UI.
-It does not mean training a new model, replacing the app or recording the
-microphone automatically. **It is not implemented yet**, so no runnable batch
-command is claimed here. Its exact file/session contract and sample outputs must
-be documented when built; private order verification must not be bypassed.
+Run from the repository root after installing the default requirements. Place
+synthetic, consented WAV recordings in `audio_samples/`. The included
+`audio_cases.json` describes two independent questions and a four-turn conversation;
+the recordings themselves are local, not bundled or committed.
+
+```powershell
+# Local WAV/manifest preflight only: no keys, downloads or provider calls
+.\.venv\Scripts\python.exe -m zentromart.audio_batch audio_samples --manifest audio_cases.json
+
+# Explicit live run: consumes Gemini quota and Gnani credits, saves outputs
+.\.venv\Scripts\python.exe -m zentromart.audio_batch audio_samples --manifest audio_cases.json --live --offline
+```
+
+`--offline` restricts embedding downloads only; STT, Gemini and TTS still use the
+network. Defaults cap the run at 24 generation attempts and 30 speech requests,
+pace generations five seconds apart, apply a conservative 250,000-input-TPM guard
+and disable automatic model retries. These are local guards, not discovery of
+remaining account quota. Failed speech requests count toward the budget too.
+
+Accepted input: **16-bit uncompressed PCM WAV**, mono/stereo, 8-96 kHz, up to
+15 seconds and 6 MB per file. Input is converted to 16-kHz mono in memory; the
+original is unchanged. Other formats require conversion first, not renaming.
+
+Manifest shape:
+
+```json
+{"turns": [
+  {"file": "question.wav", "session": "case_01", "language": "en"},
+  {"file": "followup.wav", "session": "case_01", "language": "hi"}
+]}
+```
+
+Rows run in the listed order. Consecutive rows with the same session retain
+context; a different session gets fresh memory/verification. Session groups may
+not be interleaved. Language is the **STT input hint** (`en`, `hi`, `hi-en`), not a
+forced reply language; the support agent still follows the transcript. Without
+`--manifest`, sorted root-level WAVs are independent English-hinted cases.
+
+Each execution creates a new folder; it never overwrites an earlier run:
+
+```text
+artifacts/audio_runs/<timestamp-and-unique-suffix>/
+  summary.json          # Ordered outcomes, stages, errors and configuration
+  model_usage.json      # Actual generation attempts and pacing settings
+  001/
+    result.json         # Minimized transcript, decision, trace, speech confirmation
+    reply.txt           # Actual reply; first reply includes AI disclosure
+    sources.json        # Public chunks for returned evidence IDs, unresolved IDs explicit
+    reply.wav           # 24-kHz mono speech, only after successful generation
+  002/ ...
+```
+
+Partial failures retain available text/sources but do not claim audio success.
+There may be no reply files for a failed STT turn. A failed conversation turn
+skips its dependent follow-ups; an independent case can continue. Authentication,
+quota and exhausted-budget errors stop the remaining run. Exit codes: 0 means all
+turns completed, 1 means incomplete/blocked turns, 2 means setup/preflight failed.
+Status completion means pipeline completion, **not factual-answer correctness**.
+
+Replies longer than one TTS request are split into bounded chunks and joined as
+WAV without silently truncating the answer. If typed verification is pending,
+audio processing stops for that case: proofs must not be spoken or accepted from
+audio. Batch outputs intentionally contain synthetic reply text/audio; review
+them before sharing. No raw tool arguments or provider exception payloads are
+saved. This educational minimization is not a complete PII detector.
+
+### Live batch check
+
+The owner's six recordings were processed with permission on 31 October 2026.
+**6/6 turns completed**, with **6 Gemini generation attempts and 12 Gnani requests**,
+zero failed/skipped turns and no automatic retries. Two cases were independent;
+case 3 retained one session for its four English/Hindi turns. Case 1 generated a
+cited damage-policy answer; the continued case retained item context, asked for
+delivery timing, changed language, and requested an order ID before private help.
+No refund or private-order outcome was invented.
+
+The run is preserved under
+`artifacts/audio_runs/20261031T151324Z-sr7lzhud` and copied into
+[sample outputs](sample_outputs/README.md). Nonempty WAV containers and text/source
+linkage were inspected. **Human listening review is still required**; completion
+does not prove pronunciation quality, factual accuracy or general reliability.
+An obsolete capability sentence in the first answer was found during review and
+is explicitly documented with the samples rather than hidden or rewritten.
+
+## What is inside `artifacts`?
+
+These are **generated local working files**, not source code or a submission ZIP.
+The entire directory is ignored by Git. Approximate sizes below are a snapshot
+before the first batch run, not fixed requirements.
+
+| Folder | Contents | Approximate size | Keep for submission? |
+| --- | --- | --- | --- |
+| `models/` | Pinned downloaded E5, BGE-M3 and cross-encoder weights/tokenizers | 3.1 GB | No; download/cache locally through setup |
+| `embeddings/` | Document vectors and manifests keyed by corpus/model configuration | 1.4 MB | No; reproducible cache, keep locally for faster startup |
+| `evals/` | Timestamped baseline, retrieval and reranking JSON reports | 2 MB | Use measured summaries; optionally selected reviewed reports, not every run |
+| `knowledge/` | Generated public knowledge-section exports | 0.1 MB | Not normally; source documents/setup regenerate them |
+| `brief-review/` | Local images used to inspect the capstone brief | 0.6 MB | No |
+| `ui-check/` | Development UI screenshots | Less than 0.1 MB | No; selected demo material is separate |
+| `audio_runs/` | New batch replies, speech, sources and per-turn results | Depends on runs | Review and copy selected successful outputs into `sample_outputs/` for release |
+| `tickets/` (when created) | Local mock handover records | Depends on use | No real handover; exclude unless a reviewed synthetic example is relevant |
+
+Many timestamped evaluation folders are normal: each experiment preserves its
+own results instead of replacing earlier evidence. Hashed embedding folders
+separate incompatible encoders/configurations. **Do not delete everything to
+clean up the project:** models would need downloading again and local benchmark
+evidence could be lost. No artifacts have been deleted automatically.

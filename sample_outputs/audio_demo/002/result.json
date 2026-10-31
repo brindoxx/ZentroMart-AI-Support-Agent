@@ -1,0 +1,20 @@
+{
+  "file": "02_refund_hindi.wav",
+  "session": "case_02",
+  "language": "hi-en",
+  "status": "completed",
+  "stage": "done",
+  "error": null,
+  "speech_confirmed": true,
+  "transcript_minimized": "मेरा रिफंड कब तक आएगा?",
+  "decision": "clarify",
+  "trace": {
+    "outcome": "workflow",
+    "reason": "dialogue_dispatch",
+    "model_attempts": 1,
+    "prompt_token_count": null,
+    "candidates_token_count": null,
+    "total_token_count": null
+  },
+  "tool_names": []
+}

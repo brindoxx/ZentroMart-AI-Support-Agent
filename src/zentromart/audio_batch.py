@@ -195,12 +195,14 @@ def run_batch(folder, turns, output_root, agent_factory, speech, documents, *, c
                 stopped = True
                 continue
             record['stage'] = 'stt'
+            progress(f'Audio {number}/{len(turns)}: transcribing with Gnani')
             transcript = asyncio.run(speech.transcribe(audio, turn.language))
             if not isinstance(transcript, str) or not transcript.strip() or len(transcript) > 4000:
                 raise VoiceError('invalid_response')
             # Never persist raw proofs or tool arguments. Inputs must be synthetic.
             record['transcript_minimized'] = minimize(transcript)
             record['stage'] = 'agent'
+            progress(f'Audio {number}/{len(turns)}: running the support agent')
             response = agent.respond(AgentRequest(turn.session, transcript))
             reply = response.reply if replied else disclose_ai(response.reply, response.language)
             replied = True
@@ -215,6 +217,7 @@ def run_batch(folder, turns, output_root, agent_factory, speech, documents, *, c
                           trace=asdict(trace) if trace is not None else None,
                           tool_names=[call.name for call in response.tool_calls])
             record['stage'] = 'tts'
+            progress(f'Audio {number}/{len(turns)}: generating speech')
             clips = [asyncio.run(speech.synthesize(part, response.language)) for part in speech_parts(reply)]
             (directory / 'reply.wav').write_bytes(combine_speech(clips))
             record.update(status='completed', stage='done', speech_confirmed=True)

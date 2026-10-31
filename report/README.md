@@ -8,11 +8,11 @@ It is not a declaration that the project is submission-ready.
 | Requirement | Current implementation | Remaining work |
 | --- | --- | --- |
 | LLM API and support role | Gemini transport, structured dialogue and grounded prompts | Implemented; access depends on configuration and account |
-| First reply identifies AI | UI banner identifies AI; planner says it is AI | First returned response is not explicitly guaranteed/tested to disclose AI; banner alone is insufficient for audio |
+| First reply identifies AI | UI banner/planner and tested batch first-reply disclosure | Batch disclosure is enforced; guarantee first returned reply in all live UI/voice paths as well, since a banner alone is insufficient for audio |
 | Prompt-only baseline versus RAG | Completed paired 52-question experiment; real LLM baseline, hybrid RAG, same model/cases and rate guards | Decision agreement 32.7% vs 48.1%; lexical fact coverage 12.2% vs 38.8%; see ../evals/results.md; wider quality improvement remains |
 | Document chunks and vector index | Main app defaults to cached BM25 + BGE-M3 hybrid retrieval; E5-small alternative retained | BGE improved text Hit@5 from 39/47 to 41/47; tested cross-encoder regressed and stays off; see ../evals/retrieval-experiments.md; end-to-end answer quality remains unmeasured for BGE |
 | Grounded answers and sources | Policy precedence, evidence bundle, citations and source panel | Implemented; wider factual evaluation and entailment review needed |
-| Conversation and tools | Shared create_agent factory for UI, voice, CLI chat and support evaluation | Implemented with fresh per-conversation private state and parity tests; batch runner can reuse factory when built |
+| Conversation and tools | Shared create_agent factory for UI, voice, CLI chat, support evaluation and batch audio | Fresh per-conversation private state; ordered batch turns retain one agent within a case |
 | Gnani STT and TTS with the same agent | Live relay, UI dialogue submission, speech generation and listening loop | Implemented; user reported successful loop, not broad reliability evidence |
 | Spoken dates and long order numbers | Reply text goes directly to TTS | Add presentation-only normalization and pronunciation tests without changing facts |
 | Unclear audio and failure recovery | Bounded capture, safe errors and explicit voice restart | Partial; Gemini generic failure/pause needs safe categories and explicit recovery |
@@ -25,11 +25,11 @@ in one reproducible, evaluated pipeline. Unit-test success does not close these 
 | Deliverable | Current status |
 | --- | --- |
 | Public repository with setup and key-free configuration | README/dependencies/template exist; publication is user-controlled |
-| One command accepting an audio folder | Missing; current CLI handles text/retrieval/evaluation, not required batch audio |
-| Saved reply text, speech and source chunks per input | Missing batch-output contract; redacted evaluation JSON is not a substitute |
+| One command accepting an audio folder | Implemented and live checked on six recordings: python -m zentromart.audio_batch INPUT_FOLDER --manifest audio_cases.json --live --offline; see root README for preflight/setup |
+| Saved reply text, speech and source chunks per input | Six real completed turns saved in sample_outputs/audio_demo; six Gemini and twelve Gnani attempts, no retries; human speech review remains |
 | Four-page maximum report | Not produced; this file is preparation only |
 | Two-minute maximum demo | Not produced |
-| Sample outputs and reproducible ZIP | Not assembled; tracked dataset copy/external setup must be addressed |
+| Sample outputs and reproducible ZIP | Real audio outputs assembled in sample_outputs/; ZIP and clean external-dataset setup validation remain |
 
 Do not silently publish the repository or rewrite Git history. Keep the working
 dataset intact until external dataset setup is verified.
@@ -41,8 +41,8 @@ dataset intact until external dataset setup is verified.
    construction and vector integration are implemented.
 2. Evaluate the shared support controller on complete conversations, preserving
    verification, language continuity, calculations and executor-recorded tools.
-3. Build the audio-folder runner using Gnani only. Save reply text, speech,
-   retrieved source chunks and per-file outcomes in a reproducible layout.
+3. Verify the implemented audio-folder runner live with Gnani. Review saved reply
+   text, speech, public sources and per-file outcomes before selecting samples.
 4. Guarantee first-response AI disclosure, normalize spoken dates/long IDs and
    test complete order journeys, safe failure reporting and explicit recovery.
 5. Tune retrieval, prompts, latency and call count against measured quality;

@@ -1,0 +1,121 @@
+{
+  "cited_ids": [
+    "DWM-1",
+    "DWM-2"
+  ],
+  "agent_evidence_ids": [
+    "RET-5",
+    "DWM-4",
+    "DWM-1",
+    "DWM-2",
+    "RET-2"
+  ],
+  "chunks": [
+    {
+      "evidence_id": "RET-5",
+      "title": "Items that cannot be returned",
+      "text": "Returns policy\n\n# Returns policy (version 4)\n\n## [RET-5] Items that cannot be returned\nGrocery and fresh produce, innerwear, lingerie and swimwear, and gift cards or digital codes cannot be returned for change of mind. If such an item arrives damaged, expired, wrong or missing, follow the Damaged, wrong or missing items policy.",
+      "source": "kb/pol_returns_v4.md",
+      "metadata": {
+        "doc_id": "POL-RET",
+        "title": "Returns policy",
+        "doc_type": "policy",
+        "audience": "customer",
+        "language": "en",
+        "version": "4.0",
+        "effective_from": "2026-08-01",
+        "status": "current",
+        "supersedes": "POL-RET-v3",
+        "superseded_by": null,
+        "source_sha256": "964b54f48edbd9f079d718f11cfc3164e20ba95b3943b723e03eb49fa1ee30f6",
+        "line_start": 38,
+        "line_end": 40
+      }
+    },
+    {
+      "evidence_id": "DWM-4",
+      "title": "Reported after 48 hours",
+      "text": "Damaged, wrong or missing items policy\n\n# Damaged, wrong or missing items\n\n## [DWM-4] Reported after 48 hours\nReports after 48 hours are handled as a normal return if the item is still within its return window. Otherwise the customer can use the brand or ZentroMart Assured warranty, if any.",
+      "source": "kb/pol_damaged_wrong_missing.md",
+      "metadata": {
+        "doc_id": "POL-DWM",
+        "title": "Damaged, wrong or missing items policy",
+        "doc_type": "policy",
+        "audience": "customer",
+        "language": "en",
+        "version": "1.3",
+        "effective_from": "2026-05-01",
+        "status": "current",
+        "supersedes": null,
+        "superseded_by": null,
+        "source_sha256": "6287c52adb81c8f8febf9c262ef34362af2ad33a373dc0768ae7e9d07bf7ec71",
+        "line_start": 23,
+        "line_end": 25
+      }
+    },
+    {
+      "evidence_id": "DWM-1",
+      "title": "Reporting window",
+      "text": "Damaged, wrong or missing items policy\n\n# Damaged, wrong or missing items\n\n## [DWM-1] Reporting window\nReport a damaged, defective, expired, wrong or missing item within **48 hours of delivery**, with photos of the item and the packaging. This applies to every category, including grocery and other non-returnable items.",
+      "source": "kb/pol_damaged_wrong_missing.md",
+      "metadata": {
+        "doc_id": "POL-DWM",
+        "title": "Damaged, wrong or missing items policy",
+        "doc_type": "policy",
+        "audience": "customer",
+        "language": "en",
+        "version": "1.3",
+        "effective_from": "2026-05-01",
+        "status": "current",
+        "supersedes": null,
+        "superseded_by": null,
+        "source_sha256": "6287c52adb81c8f8febf9c262ef34362af2ad33a373dc0768ae7e9d07bf7ec71",
+        "line_start": 14,
+        "line_end": 16
+      }
+    },
+    {
+      "evidence_id": "DWM-2",
+      "title": "Resolution",
+      "text": "Damaged, wrong or missing items policy\n\n# Damaged, wrong or missing items\n\n## [DWM-2] Resolution\nAfter verification the customer gets a free replacement or a full refund, including delivery fees. No reverse pickup fee applies.",
+      "source": "kb/pol_damaged_wrong_missing.md",
+      "metadata": {
+        "doc_id": "POL-DWM",
+        "title": "Damaged, wrong or missing items policy",
+        "doc_type": "policy",
+        "audience": "customer",
+        "language": "en",
+        "version": "1.3",
+        "effective_from": "2026-05-01",
+        "status": "current",
+        "supersedes": null,
+        "superseded_by": null,
+        "source_sha256": "6287c52adb81c8f8febf9c262ef34362af2ad33a373dc0768ae7e9d07bf7ec71",
+        "line_start": 17,
+        "line_end": 19
+      }
+    },
+    {
+      "evidence_id": "RET-2",
+      "title": "Return windows by category",
+      "text": "Returns policy\n\n# Returns policy (version 4)\n\n## [RET-2] Return windows by category\nThe return window starts on the **delivery date** and is counted in calendar days. The category of every product is listed in the `return_category` column of the product catalog.\n\n| Category | Return window | Catalog code |\n| --- | --- | --- |\n| Electronics and accessories | 7 days | `electronics` |\n| Clothing, footwear and bags | 15 days | `fashion` |\n| Home, kitchen and furniture | 10 days | `home_kitchen` |\n| Beauty and personal care (unopened, seal intact) | 7 days | `beauty_sealed` |\n| Books and stationery | 10 days | `books_media` |\n| Grocery, fresh and perishables | Not returnable | `grocery` |\n| Innerwear, lingerie and swimwear | Not returnable | `innerwear` |\n| Gift cards and digital codes | Not returnable | `digital` |",
+      "source": "kb/pol_returns_v4.md",
+      "metadata": {
+        "doc_id": "POL-RET",
+        "title": "Returns policy",
+        "doc_type": "policy",
+        "audience": "customer",
+        "language": "en",
+        "version": "4.0",
+        "effective_from": "2026-08-01",
+        "status": "current",
+        "supersedes": "POL-RET-v3",
+        "superseded_by": null,
+        "source_sha256": "964b54f48edbd9f079d718f11cfc3164e20ba95b3943b723e03eb49fa1ee30f6",
+        "line_start": 18,
+        "line_end": 31
+      }
+    }
+  ],
+  "unresolved_ids": []
+}

@@ -1,0 +1,20 @@
+{
+  "file": "01_return_english.wav",
+  "session": "case_01",
+  "language": "en",
+  "status": "completed",
+  "stage": "done",
+  "error": null,
+  "speech_confirmed": true,
+  "transcript_minimized": "what is the return policy for a damaged product",
+  "decision": "answer",
+  "trace": {
+    "outcome": "accepted",
+    "reason": null,
+    "model_attempts": 1,
+    "prompt_token_count": 2279,
+    "candidates_token_count": 103,
+    "total_token_count": 2382
+  },
+  "tool_names": []
+}

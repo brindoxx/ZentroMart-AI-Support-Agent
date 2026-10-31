@@ -1,0 +1,20 @@
+{
+  "file": "03_01_damage_eng.wav",
+  "session": "case_03",
+  "language": "en",
+  "status": "completed",
+  "stage": "done",
+  "error": null,
+  "speech_confirmed": true,
+  "transcript_minimized": "i received a damaged product can you help me with that",
+  "decision": "clarify",
+  "trace": {
+    "outcome": "accepted",
+    "reason": "dialogue_clarify",
+    "model_attempts": 1,
+    "prompt_token_count": null,
+    "candidates_token_count": null,
+    "total_token_count": null
+  },
+  "tool_names": []
+}
