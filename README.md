@@ -20,7 +20,7 @@ requirements; the application is not yet a complete submission.
 | Voice | Gnani STT and TTS through a local WebSocket relay; sequential listening and playback |
 | Dataset validation | 9 CSVs, 21 KB documents, 1,000 synthetic orders, 1,783 order items and 244 historical logs |
 | Practice evaluation | 52 questions and 23 conversations / 96 customer turns available; completed experiments below cover questions, not a full conversation benchmark |
-| Regression checks | 320 Python tests passed, including 11 batch-audio tests; frontend composer checks and dataset validation passed on 31 October 2026 |
+| Regression checks | 321 Python tests passed, including 11 batch-audio tests; frontend composer checks and dataset validation passed on 31 October 2026 |
 | Batch audio | Six live audio turns completed across three cases, including four-turn context/language switching; see sample outputs |
 | Remaining deliverables | Human speech review, final behaviour checks, report, demo and clean submission package |
 
@@ -359,7 +359,7 @@ Detailed reports retain aggregate/per-case metrics and configuration, not raw
 prompts, replies, keys or proofs. Generated report JSON lives under ignored
 `artifacts/evals/`; tracked [answer results](evals/results.md) and
 [retrieval results](evals/retrieval-experiments.md) record the local run IDs and
-reproduction steps. The 320-test regression suite, frontend composer check and
+reproduction steps. The 321-test regression suite, frontend composer check and
 dataset validation passed after selecting BGE. A cached offline app-index smoke
 check also returned five results. The six-file batch check below is a small live
 pipeline test, not a full live voice benchmark.
@@ -491,6 +491,9 @@ linkage were inspected. **Human listening review is still required**; completion
 does not prove pronunciation quality, factual accuracy or general reliability.
 An obsolete capability sentence in the first answer was found during review and
 is explicitly documented with the samples rather than hidden or rewritten.
+Grounded prompt v4 corrects that instruction; no new live run or answer-quality
+benchmark was performed after the correction. Historical scores remain labelled
+as v3 results, and the saved samples are unchanged.
 
 ## What is inside `artifacts`?
 

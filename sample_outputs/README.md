@@ -29,8 +29,9 @@ Hindi replies. Exact language/style consistency is not established by this sampl
 The first answer includes the obsolete sentence "verified order lookup is not
 connected in this phase." That came from the public-answer prompt, not an actual
 absence of the verified backend. This run used grounded prompt v3 from runner
-commit `fb70162`. The obsolete instruction was identified during review; any later
-prompt correction does not retroactively change these files or their results.
+commit `fb70162`. The obsolete instruction was identified during review and
+corrected in grounded prompt v4. No further paid run was made after that
+correction; it does not retroactively change these files or their results.
 Do not present this wording as the final intended capability statement.
 
 ## Files

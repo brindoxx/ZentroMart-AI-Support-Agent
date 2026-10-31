@@ -39,6 +39,14 @@ class GroundingTests(unittest.TestCase):
     def agent(self, model=None, **kwargs):
         return GroundedAgent(self.index, model if model is not None else self.model(), REFERENCE, **kwargs)
 
+    def test_public_prompt_does_not_misrepresent_connected_backend(self):
+        from zentromart.grounding import SYSTEM_INSTRUCTIONS, PROMPT_VERSION
+        self.assertEqual(PROMPT_VERSION, 'zentromart-grounded-v4')
+        self.assertNotIn('in this phase', SYSTEM_INSTRUCTIONS)
+        self.assertNotIn('verified order lookup is not connected', SYSTEM_INSTRUCTIONS)
+        self.assertIn('backend order', SYSTEM_INSTRUCTIONS)
+        self.assertIn('Do not collect verification proofs', SYSTEM_INSTRUCTIONS)
+
     def test_cited_answer_is_mapped_to_agent_contract_without_tool_traces(self):
         agent = self.agent(context=PolicyContext("refunds"))
         result = agent.respond(AgentRequest("session", "What is the UPI refund timeline?"))

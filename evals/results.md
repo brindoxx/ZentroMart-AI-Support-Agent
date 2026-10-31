@@ -48,6 +48,16 @@ results need improvement before submission-quality claims.
 
 ## Reproduce the experiment
 
+The historical run used grounded prompt v3 (original results recorded in commit
+`dca97d0`). V3 and the explicit encoder-selection CLI flags used below are
+available together in commit `0646679`.
+The current prompt is v4: it corrects obsolete wording that claimed verified
+lookup was unavailable, while retaining the public-generation privacy boundary.
+The command below reruns the same method/settings, but on current code it is a
+**new experiment**, not an exact reproduction of the historical prompt hash or
+results. Use the historical revision in a separate checkout for that code path;
+do not overwrite the active project's worktree or present old scores as v4 scores.
+
 ```powershell
 .\.venv\Scripts\python.exe -m zentromart compare-answers --live --max-cases 52 --retriever hybrid --embedding-model e5-small --reranker none --offline --interval-seconds 5 --input-tpm 250000 --max-generations 104
 ```
