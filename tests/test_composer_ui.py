@@ -18,6 +18,12 @@ except ImportError:
 @unittest.skipIf(AppTest is None, "Install requirements-voice.txt")
 class ComposerUITests(unittest.TestCase):
     def setUp(self):
+        # Test wiring without loading/downloading the actual encoder.
+        from zentromart.retrieval import BM25Index, load_search_documents
+        index = BM25Index(load_search_documents(PROJECT_ROOT / 'dataset'))
+        self.index_patch = patch('zentromart.runtime.build_public_index', return_value=index)
+        self.index_patch.start()
+        self.addCleanup(self.index_patch.stop)
         self.events = deque()
         self.mounts = []
         def render(**kwargs):

@@ -107,10 +107,13 @@ Current policies take precedence over agent guides, help, FAQs and marketing,
 with scoped historical, festive and marketplace exceptions. Historical support
 logs are not policy authority.
 
-**The main UI currently uses BM25.** Separate CLI paths support multilingual
-E5-small embeddings in a local NumPy cosine-search index and BM25 + E5 reciprocal
-rank fusion. Semantic/hybrid retrieval is not yet wired into the main chat;
-that integration is needed for the final agent's vector-RAG requirement.
+**The main UI defaults to hybrid BM25 + multilingual E5-small retrieval.**
+Document embeddings use a local NumPy cosine-search index; reciprocal-rank fusion
+combines lexical and semantic results. The public index and encoder are cached
+across reruns, while conversation state remains per tab. CPU encoder access is
+serialized. Set `RETRIEVER=bm25` or `semantic` explicitly to compare methods;
+missing vector dependencies/cache cause a setup error, not silent fallback.
+Restart the app after changing retrieval configuration.
 
 Calculations use **20 October 2026**, the dataset reference date. Business days
 are Monday-Saturday excluding supplied holidays; return windows use calendar days.
@@ -125,6 +128,8 @@ root. The UI can also read a server-side Streamlit `[llm]` secret containing
 | --- | --- |
 | `DATASET_DIR` | Extracted course dataset; default `dataset` |
 | `ARTIFACTS_DIR` | Generated indexes, evaluations and tickets; default `artifacts` |
+| `RETRIEVER` | `hybrid` (default), `semantic`, or explicitly selected `bm25` |
+| `RETRIEVAL_OFFLINE` | `true` uses only an already-downloaded encoder; default `false` |
 | `DATASET_REFERENCE_DATE` | Must remain `2026-10-20` |
 | `LLM_PROVIDER` | `gemini` |
 | `LLM_MODEL` | Explicit Gemini model ID; see the key-free example configuration |

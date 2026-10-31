@@ -1,3 +1,4 @@
 # Default contributor install: the complete Streamlit + Gemini + voice app.
 # For data/retrieval-only work use requirements-core.txt instead.
 -e .[ui,voice]
+-r requirements-semantic.txt

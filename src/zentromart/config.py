@@ -81,6 +81,25 @@ class Settings:
             raise ValueError("Missing dataset folders: " + ", ".join(missing))
 
 
+@dataclass(frozen=True)
+class RetrievalSettings:
+    method: str = "hybrid"
+    offline: bool = False
+
+    def __post_init__(self):
+        if self.method not in {"bm25", "semantic", "hybrid"} or type(self.offline) is not bool:
+            raise ValueError("Invalid retrieval configuration")
+
+
+def load_retrieval_settings(project_root: Path | None = None):
+    root = (project_root or PROJECT_ROOT).resolve()
+    values = {**dotenv_values(root / ".env"), **os.environ}
+    flag = str(values.get("RETRIEVAL_OFFLINE") or "false").strip().lower()
+    if flag not in {"true", "false"}:
+        raise ValueError("RETRIEVAL_OFFLINE must be true or false")
+    return RetrievalSettings(str(values.get("RETRIEVER") or "hybrid").strip().lower(), flag == "true")
+
+
 def load_settings(project_root: Path | None = None) -> Settings:
     """Read .env without changing process state; environment variables take priority."""
     root = (project_root or PROJECT_ROOT).resolve()

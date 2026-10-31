@@ -6,11 +6,12 @@ from uuid import uuid4
 import streamlit as st
 from zentromart.calculations import BusinessCalendar
 from zentromart.composer import composer
-from zentromart.config import LLMSettings, load_settings, load_llm_settings
+from zentromart.config import LLMSettings, load_settings, load_llm_settings, load_retrieval_settings
 from zentromart.demo import DemoGateway, SCENARIOS
 from zentromart.live_voice import REGISTRY
 from zentromart.localization import DIGITS
-from zentromart.retrieval import BM25Index, load_search_documents
+from zentromart.retrieval import load_search_documents, corpus_fingerprint
+from zentromart.runtime import build_public_index
 from zentromart.tools import MockToolGateway
 from zentromart.ui_text import TEXT
 from zentromart.voice import VoiceError, VoiceSession
@@ -22,6 +23,10 @@ st.set_page_config(page_title="ZentroMart | Support", page_icon=":material/suppo
 @st.cache_data(ttl=300, max_entries=2, show_spinner=False)
 def public_data(path):
     return load_search_documents(path), BusinessCalendar.load(path)
+
+@st.cache_resource(max_entries=2, show_spinner=False)
+def public_index(path, artifacts, method, offline, corpus_sha256):
+    return build_public_index(path, artifacts, method, offline)
 
 def model_settings():
     try:
@@ -128,6 +133,15 @@ with st.sidebar:
 try:
     settings = load_settings()
     documents, calendar = public_data(settings.dataset_dir)
+    retrieval = load_retrieval_settings()
+    try:
+        with st.spinner("Preparing document search…"):
+            index = public_index(str(settings.dataset_dir), str(settings.artifacts_dir),
+                                 retrieval.method, retrieval.offline, corpus_fingerprint(documents))
+    except (ValueError, ImportError, OSError):
+        st.error("Document search could not start. Install requirements.txt and prepare the embedding cache. "
+                 "Check RETRIEVER and RETRIEVAL_OFFLINE. No fallback search method was selected.")
+        st.stop()
     if "ui_model" not in st.session_state:
         st.session_state.ui_model = ConsentModel(settings_loader=model_settings)
     source, sessions = "demo" if demo else "dataset", st.session_state.support_sessions
@@ -136,7 +150,7 @@ try:
         gateway = MockToolGateway(settings.dataset_dir, settings.artifacts_dir / ("demo-tickets" if demo else "tickets"))
         if demo:
             gateway = DemoGateway(gateway)
-        sessions[source] = BrowserSession(SupportAgent(BM25Index(documents), model, settings.reference_date,
+        sessions[source] = BrowserSession(SupportAgent(index, model, settings.reference_date,
                                          calendar=calendar, gateway=gateway), model)
     support = st.session_state.support = sessions[source]
     support.preferences(None, cloud=st.session_state.chat_cloud_consent, tickets=tickets)
