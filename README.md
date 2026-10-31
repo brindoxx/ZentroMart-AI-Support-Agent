@@ -115,6 +115,24 @@ serialized. Set `RETRIEVER=bm25` or `semantic` explicitly to compare methods;
 missing vector dependencies/cache cause a setup error, not silent fallback.
 Restart the app after changing retrieval configuration.
 
+Optional local experiments support `EMBEDDING_MODEL=e5-small` or `bge-m3`, and
+`RERANKER=none` or `mmarco-minilm`. Models use pinned revisions, CPU inference,
+model-specific prefixes/pooling and separate vector caches. BGE-M3's publisher
+checkpoint is loaded with PyTorch >=2.6 in explicit weights-only mode; remote
+Python code is disabled. The reranker scores only the top 20 public candidates;
+policy authority and date applicability are still enforced afterwards.
+
+```powershell
+.\.venv\Scripts\python.exe -m zentromart.evaluation.retrieval_experiment --models e5-small bge-m3 --offline --rerank
+```
+
+The experiment compares top-5/top-20 text and supplied ASR-like queries, records
+per-language metrics and warm latency, and makes no Gemini/Gnani calls. Remove
+`--offline` only when a model download is intended. Model downloads/warm-up are
+excluded from warm query latency. Candidate reranking must earn its additional
+latency; it is not assumed to improve quality. NumPy's exact cosine scores are
+also checked against an independent SciPy calculation, not a FAISS benchmark.
+
 Calculations use **20 October 2026**, the dataset reference date. Business days
 are Monday-Saturday excluding supplied holidays; return windows use calendar days.
 
@@ -130,6 +148,8 @@ root. The UI can also read a server-side Streamlit `[llm]` secret containing
 | `ARTIFACTS_DIR` | Generated indexes, evaluations and tickets; default `artifacts` |
 | `RETRIEVER` | `hybrid` (default), `semantic`, or explicitly selected `bm25` |
 | `RETRIEVAL_OFFLINE` | `true` uses only an already-downloaded encoder; default `false` |
+| `EMBEDDING_MODEL` | `e5-small` or `bge-m3`; see the experiment results before switching |
+| `RERANKER` | `none` or optional `mmarco-minilm` cross-encoder |
 | `DATASET_REFERENCE_DATE` | Must remain `2026-10-20` |
 | `LLM_PROVIDER` | `gemini` |
 | `LLM_MODEL` | Explicit Gemini model ID; see the key-free example configuration |

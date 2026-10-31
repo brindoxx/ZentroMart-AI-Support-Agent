@@ -12,7 +12,7 @@ def create_agent(settings, model, *, index=None, calendar=None, gateway=None,
     if index is None:
         retrieval = load_retrieval_settings(settings.project_root)
         index = build_public_index(settings.dataset_dir, settings.artifacts_dir,
-                                   retrieval.method, retrieval.offline)
+                                   retrieval.method, retrieval.offline, retrieval.embedding_model, retrieval.reranker)
     if calendar is None:
         calendar = BusinessCalendar.load(settings.dataset_dir)
     if gateway is None:

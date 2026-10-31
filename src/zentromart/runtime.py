@@ -19,6 +19,11 @@ class SharedIndex:
         return self._index.configuration()
 
 
-def build_public_index(dataset_dir, artifacts_dir, method="hybrid", offline=False):
+def build_public_index(dataset_dir, artifacts_dir, method="hybrid", offline=False, embedding_model=None, reranker=None):
     documents = load_search_documents(Path(dataset_dir))
-    return SharedIndex(build_indexes(documents, Path(artifacts_dir), (method,), offline=offline)[method])
+    extra = {}
+    if embedding_model is not None:
+        extra['embedding_model'] = embedding_model
+    if reranker is not None:
+        extra['reranker'] = reranker
+    return SharedIndex(build_indexes(documents, Path(artifacts_dir), (method,), offline=offline, **extra)[method])

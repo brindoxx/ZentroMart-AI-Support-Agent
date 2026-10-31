@@ -191,18 +191,28 @@ class BM25Index:
 
 def build_indexes(documents: list[SearchDocument], artifacts_dir: Path,
                   methods: tuple[str, ...], offline: bool = False,
-                  rebuild: bool = False) -> dict[str, SearchIndex]:
+                  rebuild: bool = False, embedding_model=None, reranker=None) -> dict[str, SearchIndex]:
     """Build shared components once; BM25 never imports optional model libraries."""
     if not methods or not set(methods) <= {"bm25", "semantic", "hybrid"}:
         raise ValueError("Unknown retrieval method")
+    from .config import load_retrieval_settings
+    options = load_retrieval_settings()
+    embedding_model = options.embedding_model if embedding_model is None else embedding_model
+    reranker = options.reranker if reranker is None else reranker
+    if embedding_model not in {"e5-small", "bge-m3"} or reranker not in {"none", "mmarco-minilm"}:
+        raise ValueError("Invalid embedding or reranker")
     lexical = BM25Index(documents)
     indexes = {"bm25": lexical}
     if set(methods) & {"semantic", "hybrid"}:
-        from .semantic import E5Encoder, SemanticIndex
-        semantic = SemanticIndex(documents, E5Encoder(artifacts_dir / "models", offline),
+        from .semantic import make_encoder, SemanticIndex
+        semantic = SemanticIndex(documents, make_encoder(embedding_model, artifacts_dir / "models", offline),
                                  artifacts_dir / "embeddings", rebuild=rebuild)
         indexes["semantic"] = semantic
         if "hybrid" in methods:
             from .hybrid import HybridIndex
             indexes["hybrid"] = HybridIndex(lexical, semantic)
+    if reranker != "none":
+        from .reranking import MiniLMScorer, RerankedIndex
+        scorer = MiniLMScorer(artifacts_dir / "models", offline)
+        return {method: RerankedIndex(indexes[method], scorer) for method in methods}
     return {method: indexes[method] for method in methods}

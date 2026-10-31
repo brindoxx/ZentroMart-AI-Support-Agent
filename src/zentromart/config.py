@@ -85,10 +85,14 @@ class Settings:
 class RetrievalSettings:
     method: str = "hybrid"
     offline: bool = False
+    embedding_model: str = "e5-small"
+    reranker: str = "none"
 
     def __post_init__(self):
         if self.method not in {"bm25", "semantic", "hybrid"} or type(self.offline) is not bool:
             raise ValueError("Invalid retrieval configuration")
+        if self.embedding_model not in {"e5-small", "bge-m3"} or self.reranker not in {"none", "mmarco-minilm"}:
+            raise ValueError("Invalid embedding or reranker configuration")
 
 
 def load_retrieval_settings(project_root: Path | None = None):
@@ -97,7 +101,9 @@ def load_retrieval_settings(project_root: Path | None = None):
     flag = str(values.get("RETRIEVAL_OFFLINE") or "false").strip().lower()
     if flag not in {"true", "false"}:
         raise ValueError("RETRIEVAL_OFFLINE must be true or false")
-    return RetrievalSettings(str(values.get("RETRIEVER") or "hybrid").strip().lower(), flag == "true")
+    return RetrievalSettings(str(values.get("RETRIEVER") or "hybrid").strip().lower(), flag == "true",
+        str(values.get("EMBEDDING_MODEL") or "e5-small").strip().lower(),
+        str(values.get("RERANKER") or "none").strip().lower())
 
 
 def load_settings(project_root: Path | None = None) -> Settings:

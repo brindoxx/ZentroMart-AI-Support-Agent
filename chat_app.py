@@ -26,8 +26,8 @@ def public_data(path):
     return load_search_documents(path), BusinessCalendar.load(path)
 
 @st.cache_resource(max_entries=2, show_spinner=False)
-def public_index(path, artifacts, method, offline, corpus_sha256):
-    return build_public_index(path, artifacts, method, offline)
+def public_index(path, artifacts, method, offline, corpus_sha256, embedding_model, reranker):
+    return build_public_index(path, artifacts, method, offline, embedding_model, reranker)
 
 def model_settings():
     try:
@@ -138,7 +138,8 @@ try:
     try:
         with st.spinner("Preparing document search…"):
             index = public_index(str(settings.dataset_dir), str(settings.artifacts_dir),
-                                 retrieval.method, retrieval.offline, corpus_fingerprint(documents))
+                                 retrieval.method, retrieval.offline, corpus_fingerprint(documents),
+                                 retrieval.embedding_model, retrieval.reranker)
     except (ValueError, ImportError, OSError):
         st.error("Document search could not start. Install requirements.txt and prepare the embedding cache. "
                  "Check RETRIEVER and RETRIEVAL_OFFLINE. No fallback search method was selected.")

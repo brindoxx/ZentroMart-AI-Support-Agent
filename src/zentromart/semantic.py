@@ -22,6 +22,11 @@ MODEL_REVISION = "614241f622f53c4eeff9890bdc4f31cfecc418b3"
 class E5Encoder:
     """Lazy CPU-only model; token=False disables implicit use of saved HF tokens."""
 
+    model_id, revision, dimensions = MODEL_ID, MODEL_REVISION, 384
+    query_prefix, passage_prefix, batch_size = "query: ", "passage: ", 16
+    safetensors = True
+    pooling = "model-defined mean pooling"
+
     def __init__(self, model_cache: Path, offline: bool = False):
         self.model_cache, self.offline = model_cache, offline
         self._model = None
@@ -32,11 +37,11 @@ class E5Encoder:
                          ("sentence-transformers", "transformers", "torch", "numpy")}
         except Exception:
             raise ValueError('Install semantic dependencies: python -m pip install -e ".[semantic]"') from None
-        return {"model": MODEL_ID, "revision": MODEL_REVISION, "dimensions": 384,
+        return {"model": self.model_id, "revision": self.revision, "dimensions": self.dimensions,
                 "max_sequence_length": 512, "device": "cpu", "dtype": "float32",
-                "query_prefix": "query: ", "passage_prefix": "passage: ",
-                "batch_size": 16, "cpu_threads": min(4, os.cpu_count() or 1),
-                "pooling": "model-defined mean pooling", "normalized": True,
+                "query_prefix": self.query_prefix, "passage_prefix": self.passage_prefix,
+                "batch_size": self.batch_size, "cpu_threads": min(4, os.cpu_count() or 1),
+                "pooling": self.pooling, "normalized": True,
                 "libraries": libraries}
 
     def encode(self, texts: list[str]):
@@ -46,21 +51,40 @@ class E5Encoder:
             import torch
             # Bound CPU parallelism so a small corpus does not oversubscribe the machine.
             torch.set_num_threads(min(4, os.cpu_count() or 1))
+            if not self.safetensors and tuple(int(x) for x in torch.__version__.split('+')[0].split('.')[:2]) < (2, 6):
+                raise ValueError("BGE checkpoint requires PyTorch >=2.6 with weights-only loading")
             snapshot = snapshot_download(
-                MODEL_ID, revision=MODEL_REVISION, cache_dir=str(self.model_cache),
+                self.model_id, revision=self.revision, cache_dir=str(self.model_cache),
                 token=False, local_files_only=self.offline,
                 allow_patterns=["config.json", "model.safetensors", "tokenizer*.json",
                                 "special_tokens_map.json", "sentencepiece.bpe.model", "modules.json",
                                 "sentence_bert_config.json", "config_sentence_transformers.json",
-                                "1_Pooling/config.json"],
+                                "1_Pooling/config.json"] + ([] if self.safetensors else ["pytorch_model.bin"]),
             )
             self._model = SentenceTransformer(
                 str(snapshot), device="cpu", local_files_only=True, trust_remote_code=False,
-                model_kwargs={"use_safetensors": True},
+                model_kwargs={"use_safetensors": self.safetensors, "weights_only": True},
             )
             self._model.max_seq_length = 512
-        return self._model.encode(texts, batch_size=16, normalize_embeddings=True,
+        return self._model.encode(texts, batch_size=self.batch_size, normalize_embeddings=True,
                                   convert_to_numpy=True, show_progress_bar=False, prompt="")
+
+
+class BGEEncoder(E5Encoder):
+    """Pinned BGE-M3 dense embeddings; 512-token CPU comparison, no remote code."""
+    model_id = "BAAI/bge-m3"
+    revision = "5617a9f61b028005a4858fdac845db406aefb181"
+    dimensions = 1024
+    query_prefix, passage_prefix, batch_size = "", "", 4
+    pooling = "model-defined CLS pooling"
+    # Publisher's pinned checkpoint is PyTorch, loaded explicitly weights-only.
+    safetensors = False
+
+
+def make_encoder(name, cache, offline=False):
+    if name not in {"e5-small", "bge-m3"}:
+        raise ValueError("Choose embedding model e5-small or bge-m3")
+    return (E5Encoder if name == "e5-small" else BGEEncoder)(cache, offline)
 
 
 def _vectors(values, rows: int, dimensions: int, normalize: bool = True):
