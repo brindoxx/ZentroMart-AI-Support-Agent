@@ -384,7 +384,7 @@ class WorkflowTests(unittest.TestCase):
         from zentromart.__main__ import main
         gateway, model = FakeGateway(), MagicMock()
         model.generate.side_effect = AssertionError("Unexpected model call")
-        with patch("sys.argv", ["zentromart", "chat", "--support", "--live"]), patch(
+        with patch("sys.argv", ["zentromart", "chat", "--support", "--live", "--retriever", "bm25"]), patch(
             "zentromart.config.load_llm_settings", return_value=LLMSettings("gemini", "gemini-3.5-flash-lite", "test-key")
         ), patch("zentromart.llm.GeminiModel", return_value=model), patch(
             "zentromart.tools.MockToolGateway", return_value=gateway

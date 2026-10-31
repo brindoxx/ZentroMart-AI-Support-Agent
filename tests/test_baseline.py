@@ -6,7 +6,7 @@ from zentromart.baseline import PromptOnlyAgent
 from zentromart.config import load_settings
 from zentromart.contracts import AgentRequest, Message
 from zentromart.evaluation.comparison import compare_answers
-from zentromart.llm import ModelDraft, ModelResult, ModelError
+from zentromart.llm import ModelDraft, ModelResult, ModelError, ModelRequest
 from zentromart.evaluation.pacing import PacedModel
 
 
@@ -71,4 +71,22 @@ class BaselineTests(unittest.TestCase):
         wait.assert_called_once_with(8)
         with self.assertRaises(RuntimeError):
             paced.generate('third')
+        self.assertEqual(paced.calls, 2)
+
+    def test_token_guard_waits_for_rolling_window_and_rejects_oversize(self):
+        now = [0]
+        waits = []
+        def wait(seconds):
+            waits.append(seconds)
+            now[0] += seconds
+        model = self.model()
+        paced = PacedModel(model, interval_seconds=0, input_tpm=1500,
+                           clock=lambda: now[0], wait=wait)
+        request = ModelRequest('instructions', 'message')
+        paced.generate(request)
+        paced.generate(request)
+        self.assertIn(60, waits)
+        self.assertEqual(paced.calls, 2)
+        with self.assertRaises(ValueError):
+            paced.generate(ModelRequest('instructions', 'x' * 1600))
         self.assertEqual(paced.calls, 2)

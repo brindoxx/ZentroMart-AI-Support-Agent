@@ -13,7 +13,7 @@ agent context.
 | `prompt-only` | Gemini with a support prompt and the current question only | No documents, history, retrieval, tools or gold labels; evaluation only |
 | `gemini` | Stateless public-policy RAG | No private tools or dialogue planner |
 | `gemini-stateful` | Public-policy RAG with bounded context | Different controller from the primary UI |
-| `support` | Verified mock workflows and public-policy generation | Uses SupportAgent directly, not the UI's LLMConversation wrapper |
+| `support` | Shared factory and LLMConversation controller used by UI, voice and CLI chat | Fresh private state per conversation; explicit run-wide generation budget |
 
 A completed run is not an accuracy claim. Existing small development runs do not
 establish unseen-question performance. A paired prompt-only LLM versus RAG
@@ -70,8 +70,8 @@ fusion on original and ASR-like text. Add `--offline` only after the encoder has
 been downloaded. Model preparation is outside per-question retrieval latency.
 
 Reports retain corpus/practice fingerprints, model revision, settings, language
-breakdowns and cache information. The UI uses BM25, so a hybrid score is not a
-measurement of the current UI configuration. Preserve actual reports before
+breakdowns and cache information. The UI defaults to hybrid; record the actual
+configuration and distinguish retrieval scores from answer accuracy. Preserve reports before
 citing measurements in the final report.
 
 ## Live model evaluation
@@ -115,8 +115,10 @@ reply text, speech files and retrieved source chunks.
 1. Run the implemented prompt-only/RAG comparison after approving the quota budget.
 2. Review its results using the same cases, model and scoring rules; report both
    scores, denominators, failures and limitations.
-3. Evaluate the exact UI dialogue controller with fresh state per conversation
-   and the same proof/privacy/tool safeguards.
+3. Run `evaluate --agent support` for the shared UI dialogue controller. It follows
+   `RETRIEVER` (default hybrid) unless `--retriever` is explicit. Serial pacing and
+   the generation cap cover both planning and grounded-answer calls. Each
+   conversation has fresh verification and memory state.
 4. Run recorded synthetic audio through Gnani STT, that controller and Gnani TTS,
    saving the required outputs and sources.
 5. Review multi-turn language switches, unclear audio, verification failures,

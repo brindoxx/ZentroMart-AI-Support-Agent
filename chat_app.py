@@ -16,7 +16,8 @@ from zentromart.tools import MockToolGateway
 from zentromart.ui_text import TEXT
 from zentromart.voice import VoiceError, VoiceSession
 from zentromart.web_session import BrowserSession, ConsentModel, PublicAccessError
-from zentromart.workflows import SupportAgent, submitted_proof
+from zentromart.workflows import submitted_proof
+from zentromart.application import create_agent
 
 st.set_page_config(page_title="ZentroMart | Support", page_icon=":material/support_agent:", layout="centered")
 
@@ -150,8 +151,8 @@ try:
         gateway = MockToolGateway(settings.dataset_dir, settings.artifacts_dir / ("demo-tickets" if demo else "tickets"))
         if demo:
             gateway = DemoGateway(gateway)
-        sessions[source] = BrowserSession(SupportAgent(index, model, settings.reference_date,
-                                         calendar=calendar, gateway=gateway), model)
+        dialogue = create_agent(settings, model, index=index, calendar=calendar, gateway=gateway)
+        sessions[source] = BrowserSession(dialogue.backend, model, dialogue=dialogue)
     support = st.session_state.support = sessions[source]
     support.preferences(None, cloud=st.session_state.chat_cloud_consent, tickets=tickets)
 except Exception:

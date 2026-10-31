@@ -56,12 +56,15 @@ class BrowserSession:
     model: ConsentModel = field(repr=False)
     identifier: str = field(default_factory=lambda: uuid4().hex, repr=False)
     messages: list = field(default_factory=list, repr=False)
-    dialogue: object = field(init=False, repr=False)
+    dialogue: object = field(default=None, repr=False)
     dialogue_enabled: bool = field(default=False, init=False)
 
     def __post_init__(self):
         from .dialogue import LLMConversation
-        self.dialogue = LLMConversation(self.agent, self.model)
+        if self.dialogue is None:
+            self.dialogue = LLMConversation(self.agent, self.model)
+        elif self.dialogue.backend is not self.agent or self.dialogue.model is not self.model:
+            raise ValueError("Dialogue must use this session's backend and model")
 
     def preferences(self, language, cloud=False, tickets=False):
         if type(cloud) is not bool or type(tickets) is not bool:

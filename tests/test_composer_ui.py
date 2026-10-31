@@ -82,6 +82,17 @@ class ComposerUITests(unittest.TestCase):
         self.assertEqual(len(self.app.session_state.support.messages), 2)
         self.assertEqual(self.app.session_state.support.messages[-1]["path"], "dialogue")
 
+    def test_vector_setup_failure_is_visible_without_model_calls_or_fallback(self):
+        import streamlit as st
+        st.cache_resource.clear()
+        with patch('zentromart.runtime.build_public_index', side_effect=ValueError('missing cache')):
+            self.app.run()
+        self.assertFalse(self.app.exception)
+        self.assertTrue(self.app.error)
+        self.assertIn('No fallback', self.app.error[0].value)
+        self.assertEqual(self.app.session_state.support.model.calls, 0)
+        st.cache_resource.clear()
+
     def test_mic_action_issues_scoped_lease_without_key_loading_or_auto_submission(self):
         self.allow()
         with patch("zentromart.voice.load_voice_key", side_effect=AssertionError("No key before stream")):

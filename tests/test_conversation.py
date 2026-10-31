@@ -301,36 +301,39 @@ class ConversationTests(unittest.TestCase):
 
     def test_chat_loop_uses_one_agent_and_clears_memory_on_quit(self):
         from zentromart.__main__ import main
+        from zentromart.application import create_agent
+        from test_dialogue import result
         model = self.model()
+        model.plan.return_value = result(action='respond', topic='general', reply='Hello! Tell me more.')
         agents = []
         def capture(*args, **kwargs):
-            agent = ConversationalAgent(*args, **kwargs)
+            agent = create_agent(*args, **kwargs)
             agents.append(agent)
             return agent
-        with patch("sys.argv", ["zentromart", "chat", "--live"]), patch(
+        with patch("sys.argv", ["zentromart", "chat", "--live", "--retriever", "bm25"]), patch(
             "zentromart.config.load_llm_settings", return_value=LLMSettings("gemini", "gemini-3.5-flash-lite", "test-key")
         ), patch("zentromart.llm.GeminiModel", return_value=model), patch(
-            "zentromart.conversation.ConversationalAgent", side_effect=capture
+            "zentromart.application.create_agent", side_effect=capture
         ), patch("builtins.input", side_effect=["Return an item", "electronics", "2026-07-31", "/quit"]), redirect_stdout(StringIO()):
             main()
         self.assertEqual(len(agents), 1)
-        self.assertEqual(model.generate.call_count, 1)
-        self.assertIsNone(agents[0].state.session_id)
-        self.assertFalse(agents[0].state.recent_customer_messages)
+        self.assertEqual(model.plan.call_count, 3)
+        self.assertFalse(agents[0].backend.state.verified)
+        self.assertFalse(agents[0].history)
 
     def test_chat_stops_after_provider_error_instead_of_consuming_more_quota(self):
         from zentromart.__main__ import main
         model = self.model()
-        model.generate.side_effect = ModelError("quota")
+        model.plan.side_effect = ModelError("quota")
         stream = StringIO()
-        with patch("sys.argv", ["zentromart", "chat", "--live"]), patch(
+        with patch("sys.argv", ["zentromart", "chat", "--live", "--retriever", "bm25"]), patch(
             "zentromart.config.load_llm_settings", return_value=LLMSettings("gemini", "gemini-3.5-flash-lite", "test-key")
         ), patch("zentromart.llm.GeminiModel", return_value=model), patch(
             "builtins.input", side_effect=["UPI refund policy?", "And cards?"]
         ) as user_input, redirect_stdout(stream):
             main()
         self.assertEqual(user_input.call_count, 1)
-        self.assertEqual(model.generate.call_count, 1)
+        self.assertEqual(model.plan.call_count, 1)
         self.assertIn("quota", stream.getvalue())
 
 

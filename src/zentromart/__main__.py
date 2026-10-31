@@ -59,7 +59,7 @@ def main() -> None:
     chat.add_argument("--live", action="store_true", help="Allow sending questions and bounded customer memory to Gemini")
     chat.add_argument("--language", choices=("en", "hi", "hi-en"))
     chat.add_argument("--top-k", type=int, default=5)
-    chat.add_argument("--support", action="store_true", help="Enable identity-checked synthetic order workflows")
+    chat.add_argument("--support", action="store_true", help="Compatibility flag: chat always uses the shared support controller")
     chat.add_argument("--write-tickets", action="store_true", help="Allow local mock ticket records; requires --support")
     retrieval_eval = commands.add_parser("evaluate-retrieval", help="Score evidence retrieval on questions")
     retrieval_eval.add_argument("--top-k", type=int, default=5)
@@ -75,10 +75,11 @@ def main() -> None:
     answer_comparison.add_argument("--offline", action="store_true")
     answer_comparison.add_argument("--interval-seconds", type=float, default=6)
     answer_comparison.add_argument("--max-generations", type=int, default=104)
+    answer_comparison.add_argument("--input-tpm", type=int)
     for command in (search, retrieval_eval, policy_search, answer, chat):
-        command.add_argument("--retriever", choices=("bm25", "semantic", "hybrid"), default="bm25")
+        command.add_argument("--retriever", choices=("bm25", "semantic", "hybrid"), default=None)
     for command in (search, retrieval_eval, comparison, policy_search, answer, chat):
-        command.add_argument("--offline", action="store_true", help="Use only previously downloaded model files")
+        command.add_argument("--offline", action="store_true", default=None, help="Use only previously downloaded model files")
         command.add_argument("--rebuild-embeddings", action="store_true", help="Recompute document embeddings")
     evaluation = commands.add_parser("evaluate", help="Run offline practice evaluation")
     evaluation.add_argument("--suite", choices=("all", "questions", "conversations"), default="all")
@@ -86,13 +87,27 @@ def main() -> None:
     evaluation.add_argument("--write-tickets", action="store_true", help="Allow local mock ticket writes only with --agent support")
     evaluation.add_argument("--live", action="store_true", help="Allow Gemini calls when --agent gemini is selected")
     evaluation.add_argument("--max-cases", type=int, help="Evaluate only a deterministic prefix of cases")
-    evaluation.add_argument("--retriever", choices=("bm25", "semantic", "hybrid"), default="bm25")
-    evaluation.add_argument("--offline", action="store_true", help="Keep only the embedding model offline; Gemini still uses the network")
+    evaluation.add_argument("--retriever", choices=("bm25", "semantic", "hybrid"), default=None)
+    evaluation.add_argument("--offline", action="store_true", default=None, help="Keep only the embedding model offline; Gemini still uses the network")
     evaluation.add_argument("--asr", action="store_true", help="Use ASR-style text for questions")
     evaluation.add_argument("--top-k", type=int, default=5)
     evaluation.add_argument("--interval-seconds", type=float, default=6)
     evaluation.add_argument("--max-generations", type=int, default=104)
+    evaluation.add_argument("--input-tpm", type=int)
     args = parser.parse_args()
+    shared_mode = args.command == "chat" or (args.command == "evaluate" and args.agent == "support")
+    if hasattr(args, "retriever") and args.retriever is None:
+        if shared_mode:
+            from .config import load_retrieval_settings
+            args.retriever = load_retrieval_settings().method
+        else:
+            args.retriever = "bm25"
+    if hasattr(args, "offline") and args.offline is None:
+        if shared_mode:
+            from .config import load_retrieval_settings
+            args.offline = load_retrieval_settings().offline
+        else:
+            args.offline = False
     if args.command in {"answer", "chat", "compare-answers"} and not args.live:
         parser.error("answer/chat requires --live: questions and public evidence will be sent to Gemini")
     if args.command == "evaluate" and args.agent in {"prompt-only", "gemini", "gemini-stateful", "support"} and not args.live:
@@ -102,7 +117,7 @@ def main() -> None:
     if args.command == "evaluate" and args.agent == "prompt-only" and (args.suite != "questions" or args.retriever != "bm25" or args.offline):
         parser.error("prompt-only requires --suite questions and has no retriever or offline encoder")
     if args.command == "chat" and args.write_tickets and not args.support:
-        parser.error("--write-tickets requires --support")
+        parser.error("--write-tickets requires explicit --support confirmation")
     if args.command == "evaluate" and args.write_tickets and args.agent != "support":
         parser.error("--write-tickets requires --agent support")
     try:
@@ -129,7 +144,7 @@ def main() -> None:
                 raise ValueError("Use max-cases from 1 to 52 and top-k from 1 to 20")
             model_settings = replace(load_llm_settings(), retries=0)
             model = PacedModel(GeminiModel(model_settings), interval_seconds=args.interval_seconds,
-                               max_generations=args.max_generations)
+                               max_generations=args.max_generations, input_tpm=args.input_tpm)
             model_configuration = {"provider": model_settings.provider, "model": model_settings.model,
                                    "sdk_version": sdk_version(), "timeout_seconds": model_settings.timeout_seconds,
                                    "max_output_tokens": model_settings.max_output_tokens, "retries": model_settings.retries}
@@ -141,7 +156,10 @@ def main() -> None:
                                       (args.retriever,), offline=args.offline)[args.retriever]
                 report = compare_answers(settings, lambda: PromptOnlyAgent(model),
                     lambda: GroundedAgent(index, model, settings.reference_date, top_k=args.top_k),
-                    max_cases=args.max_cases, top_k=args.top_k, asr=args.asr)
+                    max_cases=args.max_cases, top_k=args.top_k, asr=args.asr,
+                    progress=lambda name, count, failed: print(
+                        f"{name}: {count}/{args.max_cases}; {'error - stopping' if failed else 'completed'}", flush=True),
+                    checkpoint=lambda arm: save_report({**arm, "model_configuration": model_configuration}, settings.artifacts_dir))
                 report["model_configuration"] = model_configuration
                 report["baseline_configuration"] = PromptOnlyAgent(model).configuration()
                 report["rag_configuration"] = GroundedAgent(index, model, settings.reference_date, top_k=args.top_k).configuration()
@@ -189,25 +207,14 @@ def main() -> None:
                 from uuid import uuid4
                 from .config import load_llm_settings
                 from .contracts import AgentRequest
-                from .conversation import ConversationalAgent
+                from .application import create_agent
                 from .llm import GeminiModel, ModelError
-                agent = ConversationalAgent(index, GeminiModel(load_llm_settings()), settings.reference_date,
-                                            top_k=args.top_k, reply_language=args.language)
-                if args.support:
-                    from .calculations import BusinessCalendar
-                    from .tools import MockToolGateway
-                    from .workflows import SupportAgent
-                    agent = SupportAgent(index, agent.model, settings.reference_date,
-                                         calendar=BusinessCalendar.load(settings.dataset_dir),
-                                         gateway=MockToolGateway(settings.dataset_dir, settings.artifacts_dir / "tickets",
-                                                                 allow_ticket_writes=args.write_tickets),
-                                         top_k=args.top_k, reply_language=args.language,
-                                         allow_ticket_writes=args.write_tickets)
+                agent = create_agent(settings, GeminiModel(load_llm_settings()), index=index,
+                                     top_k=args.top_k, reply_language=args.language,
+                                     allow_ticket_writes=args.write_tickets)
                 session = uuid4().hex
-                print("Synthetic support chat. Verification is NOT production authentication. /items, /item LINE QTY, /policy QUESTION, /reset, /quit."
-                      if args.support else "Public-policy chat. /reset clears memory; /quit exits. No private order tools or transcript saving.")
-                if args.support:
-                    print(f"Local mock ticket writes: {'enabled' if args.write_tickets else 'disabled'}. No transcript is saved.")
+                print("Synthetic AI support chat. Verification is NOT production authentication. /items, /item LINE QTY, /policy QUESTION, /reset, /quit.")
+                print(f"Local mock ticket writes: {'enabled' if args.write_tickets else 'disabled'}. No transcript is saved.")
                 while True:
                     try:
                         message = input("You: ")
@@ -319,21 +326,19 @@ def main() -> None:
                     raise ValueError("Gemini evaluation requires --max-cases > 0 and top-k from 1 to 20")
                 if args.asr and args.suite == "conversations":
                     raise ValueError("ASR text is available only for single questions")
-                model_settings = load_llm_settings()
-                model = GeminiModel(model_settings)
+                from dataclasses import replace
+                from .evaluation.pacing import PacedModel
+                model_settings = replace(load_llm_settings(), retries=0)
+                model = PacedModel(GeminiModel(model_settings), interval_seconds=args.interval_seconds,
+                                   max_generations=args.max_generations, input_tpm=args.input_tpm)
                 index = build_indexes(load_search_documents(settings.dataset_dir), settings.artifacts_dir,
                                       (args.retriever,), offline=args.offline)[args.retriever]
                 if args.agent == "support":
-                    from .calculations import BusinessCalendar
-                    from .tools import MockToolGateway
-                    from .workflows import SupportAgent
-                    calendar = BusinessCalendar.load(settings.dataset_dir)
-                    gateway = MockToolGateway(settings.dataset_dir, settings.artifacts_dir / "tickets",
-                                              allow_ticket_writes=args.write_tickets)
+                    from .application import create_agent
                 def factory():
                     if args.agent == "support":
-                        return SupportAgent(index, model, settings.reference_date, calendar=calendar, gateway=gateway,
-                                            top_k=args.top_k, allow_ticket_writes=args.write_tickets)
+                        return create_agent(settings, model, index=index, top_k=args.top_k,
+                                            allow_ticket_writes=args.write_tickets)
                     agent_type = ConversationalAgent if args.agent == "gemini-stateful" else GroundedAgent
                     return agent_type(index, model, settings.reference_date, top_k=args.top_k)
                 configuration = {**factory().configuration(), "provider": model_settings.provider,
@@ -341,12 +346,13 @@ def main() -> None:
                                  "timeout_seconds": model_settings.timeout_seconds,
                                  "max_output_tokens": model_settings.max_output_tokens,
                                  "retries": model_settings.retries}
-                options.update(factory=factory, agent_name="verified_mock_support" if args.agent == "support" else
+                options.update(factory=factory, agent_name="shared_support_dialogue" if args.agent == "support" else
                                "gemini_conversational" if args.agent == "gemini-stateful" else "gemini_grounded",
                                stop_on_error=True)
             report = run_evaluation(settings, **options)
             if configuration:
                 report["agent_configuration"] = configuration
+                report["pacing"] = model.configuration()
             path = save_report(report, settings.artifacts_dir)
             print(format_summary(report))
             print(f"Redacted report: {path}")

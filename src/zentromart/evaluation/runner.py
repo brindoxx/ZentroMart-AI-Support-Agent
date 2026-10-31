@@ -88,6 +88,7 @@ def run_evaluation(
     agent_name: str = "clarification_baseline",
     suite: str = "all", asr: bool = False, top_k: int = 5,
     max_cases: int | None = None, stop_on_error: bool = False,
+    progress=None,
 ) -> dict:
     """No gold labels cross the respond() boundary. State resets between sessions.
 
@@ -144,6 +145,8 @@ def run_evaluation(
                     row["grounding"] = asdict(trace)
                 history += (Message("user", case.message), Message("assistant", assistant_message))
                 results.append(row)
+                if progress is not None:
+                    progress(agent_name, len(results), row["error_type"] is not None)
                 if stop_on_error and row["error_type"] is not None:
                     stopped_early = True
                     break

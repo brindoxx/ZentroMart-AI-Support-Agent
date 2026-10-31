@@ -9,10 +9,10 @@ It is not a declaration that the project is submission-ready.
 | --- | --- | --- |
 | LLM API and support role | Gemini transport, structured dialogue and grounded prompts | Implemented; access depends on configuration and account |
 | First reply identifies AI | UI banner identifies AI; planner says it is AI | First returned response is not explicitly guaranteed/tested to disclose AI; banner alone is insufficient for audio |
-| Prompt-only baseline versus RAG | ClarificationBaseline never calls an LLM | Add actual prompt-only adapter and paired measured comparison |
-| Document chunks and vector index | Metadata-preserving chunks, E5 cosine index and hybrid fusion | Optional CLI implementation exists; connect vector-backed retrieval to main chat, which currently uses BM25 |
+| Prompt-only baseline versus RAG | Real prompt-only adapter and paired same-model/case comparison command with pacing and generation cap | Implemented; live measurement awaits project limits and quota approval; clarification-only wiring check remains separate |
+| Document chunks and vector index | Main app defaults to cached BM25 + multilingual E5 hybrid retrieval; explicit method configuration | Implemented; real cached-encoder offline smoke test passed; full quality evaluation remains |
 | Grounded answers and sources | Policy precedence, evidence bundle, citations and source panel | Implemented; wider factual evaluation and entailment review needed |
-| Conversation and tools | UI LLMConversation wraps SupportAgent with verification and actual tools | Implemented, but CLI/evaluation use different controllers; unify the tested pipeline |
+| Conversation and tools | Shared create_agent factory for UI, voice, CLI chat and support evaluation | Implemented with fresh per-conversation private state and parity tests; batch runner can reuse factory when built |
 | Gnani STT and TTS with the same agent | Live relay, UI dialogue submission, speech generation and listening loop | Implemented; user reported successful loop, not broad reliability evidence |
 | Spoken dates and long order numbers | Reply text goes directly to TTS | Add presentation-only normalization and pronunciation tests without changing facts |
 | Unclear audio and failure recovery | Bounded capture, safe errors and explicit voice restart | Partial; Gemini generic failure/pause needs safe categories and explicit recovery |
@@ -36,11 +36,11 @@ dataset intact until external dataset setup is verified.
 
 ## Recommended completion order
 
-1. Use one agent factory/controller for UI, evaluation and batch audio. Preserve
-   verification, language continuity, deterministic calculations and tool-success
-   checks. Integrate the existing semantic/hybrid implementation.
-2. Add the real prompt-only LLM baseline and evaluate it against RAG on the same
-   questions. Record results before choosing architectural optimizations.
+1. Run the implemented paired comparison within the project's actual RPM, TPM
+   and remaining daily quota. Shared agent construction and vector integration
+   are implemented; do not substitute mocked scores for live measurements.
+2. Evaluate the shared support controller on complete conversations, preserving
+   verification, language continuity, calculations and executor-recorded tools.
 3. Build the audio-folder runner using Gnani only. Save reply text, speech,
    retrieved source chunks and per-file outcomes in a reproducible layout.
 4. Guarantee first-response AI disclosure, normalize spoken dates/long IDs and

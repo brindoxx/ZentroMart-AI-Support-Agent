@@ -171,9 +171,18 @@ encoder downloads; it does not make Gemini offline. For dataset/BM25 work only,
 install `requirements-core.txt`. Other requirements files select model, UI,
 speech or semantic extras.
 
-CLI `answer`, `chat` and `chat --support` are diagnostic adapters. They do not use
-the UI's LLM-led dialogue controller, so their scores are not scores for the
-exact UI agent. See [evaluation](evals/README.md) for commands and interpretation.
+The UI, voice, CLI `chat` and `evaluate --agent support` use the same
+`application.create_agent` factory and LLM-led controller. Public retrieval is
+reused; every conversation gets fresh memory, verification and tool state.
+`chat --support` remains a compatibility alias. CLI `answer`, `gemini` and
+`gemini-stateful` evaluation adapters are explicit diagnostic/ablation modes.
+See [evaluation](evals/README.md) for commands and quota controls.
+
+The evaluation-only `prompt-only` adapter calls Gemini without documents or tools.
+`compare-answers` compares it with stateless RAG on identical questions and model
+settings. Full `support` evaluation measures the conversational agent separately.
+Live scores still need an explicitly approved quota budget; mocked tests are not
+benchmark results.
 
 ## Privacy, limits and known limitations
 
