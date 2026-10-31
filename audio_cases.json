@@ -1,0 +1,10 @@
+{
+  "turns": [
+    {"file": "01_return_english.wav", "session": "case_01", "language": "en"},
+    {"file": "02_refund_hindi.wav", "session": "case_02", "language": "hi"},
+    {"file": "03_01_damage_eng.wav", "session": "case_03", "language": "en"},
+    {"file": "03_02_damage_eng.wav", "session": "case_03", "language": "en"},
+    {"file": "03_03_damage_hin.wav", "session": "case_03", "language": "hi"},
+    {"file": "03_04_damage_hin.wav", "session": "case_03", "language": "hi"}
+  ]
+}

@@ -24,6 +24,7 @@ dist/
 
 # Runtime artifacts, conversations, and local model downloads
 artifacts/
+audio_samples/
 logs/
 .cache/
 tmp/
