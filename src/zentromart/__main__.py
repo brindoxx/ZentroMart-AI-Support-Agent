@@ -73,6 +73,8 @@ def main() -> None:
     answer_comparison.add_argument("--asr", action="store_true")
     answer_comparison.add_argument("--retriever", choices=("bm25", "semantic", "hybrid"), default="hybrid")
     answer_comparison.add_argument("--offline", action="store_true")
+    answer_comparison.add_argument("--embedding-model", choices=("e5-small", "bge-m3"), default=None)
+    answer_comparison.add_argument("--reranker", choices=("none", "mmarco-minilm"), default=None)
     answer_comparison.add_argument("--interval-seconds", type=float, default=6)
     answer_comparison.add_argument("--max-generations", type=int, default=104)
     answer_comparison.add_argument("--input-tpm", type=int)
@@ -153,7 +155,8 @@ def main() -> None:
                 from .grounding import GroundedAgent
                 from .retrieval import build_indexes, load_search_documents
                 index = build_indexes(load_search_documents(settings.dataset_dir), settings.artifacts_dir,
-                                      (args.retriever,), offline=args.offline)[args.retriever]
+                                      (args.retriever,), offline=args.offline,
+                                      embedding_model=args.embedding_model, reranker=args.reranker)[args.retriever]
                 report = compare_answers(settings, lambda: PromptOnlyAgent(model),
                     lambda: GroundedAgent(index, model, settings.reference_date, top_k=args.top_k),
                     max_cases=args.max_cases, top_k=args.top_k, asr=args.asr,

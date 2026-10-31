@@ -5,6 +5,11 @@ against the supplied synthetic practice cases: 52 individual questions and
 23 conversations containing 96 customer turns. Gold labels must never become
 agent context.
 
+The bounded [embedding and reranking comparison](retrieval-experiments.md)
+documents why BGE-M3 is now selected and the tested cross-encoder remains off.
+The earlier [paired Gemini comparison](results.md) used E5-small; do not combine
+those answer scores with the new encoder's retrieval metrics.
+
 ## Current adapters
 
 | Adapter | Behaviour | Limitation |
@@ -24,7 +29,7 @@ for scores, denominators, reproducibility information and limitations.
 
 ```powershell
 .\.venv\Scripts\python.exe -m zentromart evaluate --agent prompt-only --live --suite questions --max-cases 3
-.\.venv\Scripts\python.exe -m zentromart compare-answers --live --max-cases 52 --retriever hybrid --interval-seconds 12 --max-generations 104
+.\.venv\Scripts\python.exe -m zentromart compare-answers --live --max-cases 52 --retriever hybrid --embedding-model e5-small --reranker none --interval-seconds 12 --max-generations 104
 ```
 
 The paired command uses the same model, generation settings, question order,

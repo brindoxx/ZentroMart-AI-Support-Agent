@@ -1,4 +1,4 @@
-"""Local multilingual E5 embeddings, cosine search, and validated document caches."""
+"""Pinned multilingual embeddings, exact cosine search, and validated caches."""
 
 import hashlib
 from importlib.metadata import version

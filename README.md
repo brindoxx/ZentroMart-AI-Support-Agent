@@ -107,7 +107,7 @@ Current policies take precedence over agent guides, help, FAQs and marketing,
 with scoped historical, festive and marketplace exceptions. Historical support
 logs are not policy authority.
 
-**The main UI defaults to hybrid BM25 + multilingual E5-small retrieval.**
+**The main UI defaults to hybrid BM25 + BGE-M3 dense retrieval, without reranking.**
 Document embeddings use a local NumPy cosine-search index; reciprocal-rank fusion
 combines lexical and semantic results. The public index and encoder are cached
 across reruns, while conversation state remains per tab. CPU encoder access is
@@ -115,7 +115,8 @@ serialized. Set `RETRIEVER=bm25` or `semantic` explicitly to compare methods;
 missing vector dependencies/cache cause a setup error, not silent fallback.
 Restart the app after changing retrieval configuration.
 
-Optional local experiments support `EMBEDDING_MODEL=e5-small` or `bge-m3`, and
+The measured choice and its limitations are in [retrieval experiments](evals/retrieval-experiments.md).
+E5-small remains a lower-latency alternative. Local experiments support `EMBEDDING_MODEL=e5-small` or `bge-m3`, and
 `RERANKER=none` or `mmarco-minilm`. Models use pinned revisions, CPU inference,
 model-specific prefixes/pooling and separate vector caches. BGE-M3's publisher
 checkpoint is loaded with PyTorch >=2.6 in explicit weights-only mode; remote
@@ -148,8 +149,8 @@ root. The UI can also read a server-side Streamlit `[llm]` secret containing
 | `ARTIFACTS_DIR` | Generated indexes, evaluations and tickets; default `artifacts` |
 | `RETRIEVER` | `hybrid` (default), `semantic`, or explicitly selected `bm25` |
 | `RETRIEVAL_OFFLINE` | `true` uses only an already-downloaded encoder; default `false` |
-| `EMBEDDING_MODEL` | `e5-small` or `bge-m3`; see the experiment results before switching |
-| `RERANKER` | `none` or optional `mmarco-minilm` cross-encoder |
+| `EMBEDDING_MODEL` | `bge-m3` (default) or lower-latency `e5-small` |
+| `RERANKER` | `none` (default); optional `mmarco-minilm` regressed in the measured trial |
 | `DATASET_REFERENCE_DATE` | Must remain `2026-10-20` |
 | `LLM_PROVIDER` | `gemini` |
 | `LLM_MODEL` | Explicit Gemini model ID; see the key-free example configuration |

@@ -49,7 +49,7 @@ results need improvement before submission-quality claims.
 ## Reproduce the experiment
 
 ```powershell
-.\.venv\Scripts\python.exe -m zentromart compare-answers --live --max-cases 52 --retriever hybrid --offline --interval-seconds 5 --input-tpm 250000 --max-generations 104
+.\.venv\Scripts\python.exe -m zentromart compare-answers --live --max-cases 52 --retriever hybrid --embedding-model e5-small --reranker none --offline --interval-seconds 5 --input-tpm 250000 --max-generations 104
 ```
 
 This command consumes Gemini quota. It was configured against the user's stated

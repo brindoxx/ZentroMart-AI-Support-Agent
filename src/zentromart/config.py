@@ -85,7 +85,7 @@ class Settings:
 class RetrievalSettings:
     method: str = "hybrid"
     offline: bool = False
-    embedding_model: str = "e5-small"
+    embedding_model: str = "bge-m3"
     reranker: str = "none"
 
     def __post_init__(self):
@@ -102,7 +102,7 @@ def load_retrieval_settings(project_root: Path | None = None):
     if flag not in {"true", "false"}:
         raise ValueError("RETRIEVAL_OFFLINE must be true or false")
     return RetrievalSettings(str(values.get("RETRIEVER") or "hybrid").strip().lower(), flag == "true",
-        str(values.get("EMBEDDING_MODEL") or "e5-small").strip().lower(),
+        str(values.get("EMBEDDING_MODEL") or "bge-m3").strip().lower(),
         str(values.get("RERANKER") or "none").strip().lower())
 
 

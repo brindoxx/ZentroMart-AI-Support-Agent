@@ -12,9 +12,15 @@ class RuntimeTests(unittest.TestCase):
     def test_defaults_and_explicit_configuration(self):
         with TemporaryDirectory() as path, patch.dict(os.environ, {}, clear=True):
             self.assertEqual(load_retrieval_settings(Path(path)), RetrievalSettings('hybrid', False))
+            self.assertEqual(load_retrieval_settings(Path(path)).embedding_model, 'bge-m3')
+            self.assertEqual(load_retrieval_settings(Path(path)).reranker, 'none')
+            with patch.dict(os.environ, {'EMBEDDING_MODEL': 'e5-small', 'RERANKER': 'mmarco-minilm'}):
+                chosen = load_retrieval_settings(Path(path))
+                self.assertEqual((chosen.embedding_model, chosen.reranker), ('e5-small', 'mmarco-minilm'))
             with patch.dict(os.environ, {'RETRIEVER': 'semantic', 'RETRIEVAL_OFFLINE': 'true'}):
                 self.assertEqual(load_retrieval_settings(Path(path)), RetrievalSettings('semantic', True))
-            for key, value in [('RETRIEVER', 'unknown'), ('RETRIEVAL_OFFLINE', 'yes')]:
+            for key, value in [('RETRIEVER', 'unknown'), ('RETRIEVAL_OFFLINE', 'yes'),
+                               ('EMBEDDING_MODEL', 'unknown'), ('RERANKER', 'unknown')]:
                 with patch.dict(os.environ, {key: value}), self.assertRaises(ValueError):
                     load_retrieval_settings(Path(path))
 
