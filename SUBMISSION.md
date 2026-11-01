@@ -18,18 +18,27 @@ Repository: https://github.com/brindoxx/ZentroMart-AI-Support-Agent
 | Demo, at most two minutes | Owner must record and add root `demo.mp4`; see `DEMO_SCRIPT.md` for preparation |
 | Reviewed speech samples | Owner listened and approved inclusion of input recordings and generated replies |
 
-## Next implementation / final behaviour checks
+## Final behaviour status and release checks
 
-These remain visible rather than being disguised as completed work:
+Implemented and checked offline:
 
-1. Guarantee first-returned-reply AI disclosure across **all live UI/voice paths**.
-   Batch first replies already have tested enforcement.
-2. Add presentation-only speech normalization for explicit date years and grouped
-   long order numbers; preserve the written facts and never voice verification proofs.
-3. Improve unclear-audio recovery and safe model-error categories/recovery without
-   silently retrying quota failures or renewing budgets. Recheck complete order
-   journeys and one real mock handover before recording the final demo.
-4. Validate a truly clean install with a separately obtained dataset. The current
+1. Shared first-reply AI disclosure, plus browser enforcement for local-first replies.
+2. Bounded public follow-up context in retrieval and retained scenario claims;
+   private exchanges are excluded and subject changes clear unrelated context.
+3. One bounded source-reference correction generation, with unchanged guards;
+   safe diagnostics and recovery after a rejected draft. Exact reported exchange tested.
+4. Speech-only explicit ISO date formatting and labelled order-ID grouping,
+   preserving written facts/prices and not guessing missing years.
+
+The 335-test suite passed. An approved four-turn live Gemini text rehearsal also
+passed with five generations, no citation correction needed and zero Gnani calls;
+the actual output is in `sample_outputs/final_demo_text_rehearsal.json`. This does
+not replace a voice rehearsal or constitute a new accuracy benchmark.
+Before final recording/upload:
+
+1. Rehearse a real grounded question/follow-up and mock handover. Wider unclear-audio
+   testing and category-specific provider-error recovery remain limitations.
+2. Validate a truly clean install with a separately obtained dataset. The current
    checks validate code, local dependencies and sample outputs, not a fresh machine.
 
 No more model/framework experiments or fine-tuning are planned before release.

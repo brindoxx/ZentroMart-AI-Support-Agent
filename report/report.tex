@@ -129,8 +129,9 @@ requires \texttt{--live}. Only synthetic content and the owner's consented test 
 collection instead of processing a spoken proof as verification.
 \item Failed requests count toward budgets. The measured batch used no automatic
 retries. Authentication/quota failures stop remaining batch requests.
-\item Batch first replies enforce AI disclosure. A guarantee across every live
-UI/voice response path remains a final hardening task; a banner alone is insufficient.
+\item First returned replies explicitly disclose AI identity in the shared
+controller and browser boundary; text, voice and batch paths have offline tests.
+ISO dates and labelled order IDs are reformatted only for speech, without changing written facts.
 \end{itemize}
 
 \subsection{Enhancements beyond the minimum}
@@ -198,8 +199,14 @@ Six real recordings across three cases completed STT, agent processing and TTS:
 turns}. The four-turn case retained item context and changed from English to
 Hindi before requesting an order ID. The owner listened to the generated replies
 and reported satisfactory speech. This is a small subjective check, not WER or a
-general voice-reliability score. The offline suite passed \textbf{325 tests},
-including 11 batch-audio and four release-package checks.
+general voice-reliability score. The offline suite passed \textbf{335 tests},
+including 11 batch-audio, four release and ten final conversation/presentation checks.
+
+An approved four-turn text rehearsal of the revised demo also completed:
+AI-disclosed greeting, cited damage-policy answer, context-aware pickup answer
+and executor-confirmed mock handover. It used five Gemini generations and zero
+speech requests; both policy drafts passed on the first attempt. This is a small
+live text check, not an accuracy benchmark or a new voice recording.
 
 \newpage
 \tagline{LIMITATIONS / REPRODUCIBILITY / NEXT STEPS}
@@ -215,10 +222,12 @@ NumPy exact cosine matched SciPy; a database migration was not an accuracy fix.
 damage answer says lookup was not connected. Review identified the old public
 prompt instruction; v4 corrects it. Samples remain unchanged, and neither the
 historical answer benchmark nor the six-file live run was repeated after this fix.
-\item \textbf{Remaining voice hardening.} First-response AI disclosure needs a
-shared guarantee across live paths. Presentation-only date/year and grouped-ID
-normalization, unclear-audio recovery and category-specific model retry controls
-remain improvements. Never weaken verification or grounding to improve fluency.
+\item \textbf{Follow-ups exposed a retrieval gap.} The planner saw history, but
+search used only the latest sentence. The shared controller now includes bounded
+public customer context in retrieval. One citation-correction generation is
+allowed after a reference failure; the same guards still apply. Invalid second
+drafts are withheld with a safe diagnostic and recovery prompt. This exact
+damage/pickup/handover exchange passes controlled offline tests, not a new live benchmark.
 \end{itemize}
 
 \section{Reproduce and inspect the solution}
@@ -245,6 +254,11 @@ model pacing and a conservative 250,000-input-TPM guard. The browser has its own
 budgets. These controls do not discover remaining project-wide account quota.
 The original 52-question experiment used user-reported 15 RPM / 250k TPM / 500 RPD
 limits and no retries; another run consumes additional quota.
+
+The release may spend one extra generation on citation correction; successful
+first drafts cost no extra call, and quota/provider errors are not retried by
+that mechanism. Wider voice/noise testing, clearer provider-error recovery and a
+truly clean-machine install remain limitations. Missing date years are not guessed.
 
 \subsection{Where to verify the evidence}
 \textbf{Code and setup:} \repo\par

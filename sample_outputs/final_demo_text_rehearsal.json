@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "run_kind": "final_demo_text_rehearsal",
+  "turns": [
+    {
+      "turn": 1,
+      "question": "hello",
+      "decision": "answer",
+      "reply": "I'm ZentroMart's AI support assistant. Hello! Welcome to ZentroMart. How can I help you today?",
+      "language": "en",
+      "evidence": [],
+      "trace": {
+        "outcome": "accepted",
+        "reason": "dialogue_respond",
+        "model_attempts": 1,
+        "prompt_token_count": null,
+        "candidates_token_count": null,
+        "total_token_count": null
+      },
+      "tool_names": []
+    },
+    {
+      "turn": 2,
+      "question": "What is ZentroMart's policy when a product arrives damaged?",
+      "decision": "answer",
+      "reply": "If a product arrives damaged, you should report it within 48 hours of delivery along with photos of the item and its packaging [DWM-1]. Once verified, you will receive a free replacement or a full refund, including delivery fees, with no reverse pickup fee [DWM-2]. For specific order details or to process a claim, secure verification in the application's backend order workflow is required.",
+      "language": "en",
+      "evidence": [
+        "DWM-1",
+        "DWM-2"
+      ],
+      "trace": {
+        "outcome": "accepted",
+        "reason": null,
+        "model_attempts": 1,
+        "prompt_token_count": 1899,
+        "candidates_token_count": 134,
+        "total_token_count": 2033
+      },
+      "tool_names": []
+    },
+    {
+      "turn": 3,
+      "question": "Do I need to pay for the pickup in that situation?",
+      "decision": "answer",
+      "reply": "If an item arrives damaged, defective, or wrong, there is no reverse pickup fee [RET-6]. After verification, you are eligible for a free replacement or a full refund, including delivery fees [DWM-2]. To check your specific order details securely, please use our backend order workflow.",
+      "language": "en",
+      "evidence": [
+        "RET-6",
+        "DWM-2"
+      ],
+      "trace": {
+        "outcome": "accepted",
+        "reason": null,
+        "model_attempts": 1,
+        "prompt_token_count": 1898,
+        "candidates_token_count": 110,
+        "total_token_count": 2008
+      },
+      "tool_names": []
+    },
+    {
+      "turn": 4,
+      "question": "I request human support, please.",
+      "decision": "escalate",
+      "reply": "Ticket TKTf0f8f4709a0e4f6ea1e1f8510bd72a25 is confirmed for human follow-up. No refund, compensation or cancellation has been approved. [ESC-1] [ESC-2]",
+      "language": "en",
+      "evidence": [
+        "ESC-1",
+        "ESC-2"
+      ],
+      "trace": {
+        "outcome": "workflow",
+        "reason": "ticket_confirmed",
+        "model_attempts": 0,
+        "prompt_token_count": null,
+        "candidates_token_count": null,
+        "total_token_count": null
+      },
+      "tool_names": [
+        "create_ticket"
+      ]
+    }
+  ],
+  "model_usage": {
+    "interval_seconds": 5,
+    "generation_limit": 8,
+    "attempted_generations": 5,
+    "input_tpm": 250000,
+    "token_guard": "conservative_utf8_bytes_plus_framing",
+    "quota_discovered": false
+  },
+  "retrieval": {
+    "algorithm": "hybrid",
+    "fusion": "equal-weight reciprocal rank fusion",
+    "candidate_k": 20,
+    "rank_constant": 60,
+    "candidate_rule": "max(candidate_k, requested_top_k)",
+    "document_count": 154,
+    "corpus_sha256": "c14435479f1e7ba19981eb47dd58707b3b6c06cf5ec0f748d29df916082ff3bd",
+    "lexical": {
+      "algorithm": "bm25",
+      "k1": 1.2,
+      "b": 0.75,
+      "tokenizer": "nfkc_casefold_unicode_words_english_stopwords_v1",
+      "query_terms": "unique",
+      "document_count": 154,
+      "average_document_tokens": 35.48701298701299,
+      "corpus_sha256": "c14435479f1e7ba19981eb47dd58707b3b6c06cf5ec0f748d29df916082ff3bd",
+      "idf": "log(1 + (N - df + 0.5) / (df + 0.5))",
+      "tf": "tf * (k1 + 1) / (tf + k1 * (1 - b + b * dl / avgdl))"
+    },
+    "semantic": {
+      "algorithm": "semantic",
+      "encoder": {
+        "model": "BAAI/bge-m3",
+        "revision": "5617a9f61b028005a4858fdac845db406aefb181",
+        "dimensions": 1024,
+        "max_sequence_length": 512,
+        "device": "cpu",
+        "dtype": "float32",
+        "query_prefix": "",
+        "passage_prefix": "",
+        "batch_size": 4,
+        "cpu_threads": 4,
+        "pooling": "model-defined CLS pooling",
+        "normalized": true,
+        "libraries": {
+          "sentence-transformers": "5.7.0",
+          "transformers": "5.21.0",
+          "torch": "2.14.1",
+          "numpy": "2.5.4"
+        }
+      },
+      "document_count": 154,
+      "corpus_sha256": "c14435479f1e7ba19981eb47dd58707b3b6c06cf5ec0f748d29df916082ff3bd",
+      "similarity": "cosine",
+      "embedding_cache_hit": true
+    }
+  },
+  "speech_requests": 0,
+  "microphone_used": false,
+  "not_an_accuracy_benchmark": true
+}

@@ -32,8 +32,8 @@ The first answer includes the obsolete sentence "verified order lookup is not
 connected in this phase." That came from the public-answer prompt, not an actual
 absence of the verified backend. This run used grounded prompt v3 from runner
 commit `fb70162`. The obsolete instruction was identified during review and
-corrected in grounded prompt v4. No further paid run was made after that
-correction; it does not retroactively change these files or their results.
+corrected in grounded prompt v4. This six-file audio run was not repeated;
+the later text-only rehearsal below does not change these files or their results.
 Do not present this wording as the final intended capability statement.
 
 ## Files
@@ -50,3 +50,18 @@ included consented recordings or equivalent synthetic inputs, provider access,
 the separately obtained dataset and installed model dependencies. Model replies
 may vary. The examples do not complete private verification or test failure
 recovery; those paths have offline contract tests but need wider live evaluation.
+
+## Final demo text rehearsal after the release fixes
+
+`final_demo_text_rehearsal.json` preserves an approved real Gemini check from
+1 November, local report `20261101T124923Z-4c8753c7`. The shared BGE hybrid agent
+received a greeting, a general damaged-product question, a pickup follow-up and
+a request for human support. The first reply identified AI, both policy answers
+passed citation checks on their first draft, and the actual local executor
+confirmed the mock ticket. It consumed five Gemini generations and zero speech
+requests, with no provider retries or microphone use.
+
+This small text rehearsal is not a rerun of the 52-question benchmark or the
+six-recording audio check. The replies and executor outcomes were saved from
+the real run, not typed as expected answers. Use the current app to record the
+demo rather than pasting these outputs into a conversation.

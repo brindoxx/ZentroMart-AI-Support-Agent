@@ -8,13 +8,13 @@ It is not a declaration that the project is submission-ready.
 | Requirement | Current implementation | Remaining work |
 | --- | --- | --- |
 | LLM API and support role | Gemini transport, structured dialogue and grounded prompts | Implemented; access depends on configuration and account |
-| First reply identifies AI | UI banner/planner and tested batch first-reply disclosure | Batch disclosure is enforced; guarantee first returned reply in all live UI/voice paths as well, since a banner alone is insufficient for audio |
+| First reply identifies AI | Shared controller and browser first-reply enforcement; batch reuses identity helper | Offline text/voice/batch coverage passed; live rehearsal remains |
 | Prompt-only baseline versus RAG | Completed paired 52-question experiment; real LLM baseline, hybrid RAG, same model/cases and rate guards | Decision agreement 32.7% vs 48.1%; lexical fact coverage 12.2% vs 38.8%; see ../evals/results.md; wider quality improvement remains |
 | Document chunks and vector index | Main app defaults to cached BM25 + BGE-M3 hybrid retrieval; E5-small alternative retained | BGE improved text Hit@5 from 39/47 to 41/47; tested cross-encoder regressed and stays off; see ../evals/retrieval-experiments.md; end-to-end answer quality remains unmeasured for BGE |
 | Grounded answers and sources | Policy precedence, evidence bundle, citations and source panel | Implemented; wider factual evaluation and entailment review needed |
 | Conversation and tools | Shared create_agent factory for UI, voice, CLI chat, support evaluation and batch audio | Fresh per-conversation private state; ordered batch turns retain one agent within a case |
 | Gnani STT and TTS with the same agent | Live relay, UI dialogue submission, speech generation and listening loop | Implemented; user reported successful loop, not broad reliability evidence |
-| Spoken dates and long order numbers | Reply text goes directly to TTS | Add presentation-only normalization and pronunciation tests without changing facts |
+| Spoken dates and long order numbers | Shared speech presentation formats explicit ISO dates and labelled order IDs; written text/prices unchanged | Offline tests passed; do not guess missing years; live pronunciation rehearsal remains |
 | Unclear audio and failure recovery | Bounded capture, safe errors and explicit voice restart | Partial; Gemini generic failure/pause needs safe categories and explicit recovery |
 
 The four implementation areas exist, but the required steps are not all complete
@@ -43,8 +43,8 @@ dataset intact until external dataset setup is verified.
    verification, language continuity, calculations and executor-recorded tools.
 3. Verify the implemented audio-folder runner live with Gnani. Review saved reply
    text, speech, public sources and per-file outcomes before selecting samples.
-4. Guarantee first-response AI disclosure, normalize spoken dates/long IDs and
-   test complete order journeys, safe failure reporting and explicit recovery.
+4. Rehearse the implemented AI disclosure, date/ID speech formatting and bounded
+   citation recovery live; keep safe failure reporting and verification guards.
 5. Tune retrieval, prompts, latency and call count against measured quality;
    keep regressions and failed cases visible.
 6. Prepare the final report/demo and validate a clean installation and ZIP.

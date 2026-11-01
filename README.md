@@ -20,7 +20,7 @@ requirements; the application is not yet a complete submission.
 | Voice | Gnani STT and TTS through a local WebSocket relay; sequential listening and playback |
 | Dataset validation | 9 CSVs, 21 KB documents, 1,000 synthetic orders, 1,783 order items and 244 historical logs |
 | Practice evaluation | 52 questions and 23 conversations / 96 customer turns available; completed experiments below cover questions, not a full conversation benchmark |
-| Regression checks | 325 Python tests passed on 1 November 2026, including 11 batch-audio and 4 release tests; frontend composer checks also passed |
+| Regression checks | 335 Python tests passed on 1 November 2026, including 11 batch-audio, 4 release and 10 final conversation/presentation tests; frontend composer checks also passed |
 | Batch audio | Six live audio turns completed across three cases, including four-turn context/language switching; see sample outputs |
 | Submission status | Owner reviewed generated speech; styled four-page report prepared; final behaviour checks and demo video remain |
 
@@ -341,7 +341,7 @@ Detailed reports retain aggregate/per-case metrics and configuration, not raw
 prompts, replies, keys or proofs. Generated report JSON lives under ignored
 `artifacts/evals/`; tracked [answer results](evals/results.md) and
 [retrieval results](evals/retrieval-experiments.md) record the local run IDs and
-reproduction steps. The latest 325-test regression suite and frontend composer
+reproduction steps. The latest 335-test regression suite and frontend composer
 check passed on 1 November; dataset validation passed after selecting BGE. A cached offline app-index smoke
 check also returned five results. The six-file batch check below is a small live
 pipeline test, not a full live voice benchmark.
@@ -362,6 +362,45 @@ pipeline test, not a full live voice benchmark.
 - Verification and text minimization are educational safeguards, not production
   authentication or comprehensive PII protection.
 - Citation-ID validation does not prove the cited passage entails the answer.
+
+### Final conversation reliability changes
+
+The shared controller discloses its AI identity on its first returned reply.
+Browser presentation enforces the same for local-first replies, and voice speaks
+that displayed reply. Clearing a conversation restores first-reply disclosure
+without renewing model budgets or verification lockouts.
+
+Public retrieval now uses bounded earlier customer messages as well as the
+current follow-up; it does not index assistant answers or private order/proof
+exchanges. Relevant supplied scenario fields are retained until the item/subject
+changes. The model still chooses the topic and wording; no damaged-product
+answer is hardcoded.
+
+For a citation mismatch or uncited answer, the shared dialogue path permits
+**one additional generation** against the same public evidence. All original
+validation guards apply again. No rejected draft is displayed, no missing ID is
+fabricated, and a second failure stays a safe fallback. Unsafe action claims,
+wrong-language drafts, provider/quota failures and invalid structures do not
+trigger this correction path. This is distinct from transport retries and uses
+the existing generation budget. Stateless benchmark adapters leave it disabled.
+
+Fixed allowlisted diagnostic captions explain failed source/structure/language/
+action checks without raw provider payloads, credentials or rejected drafts.
+The exact reported greeting/damage/pickup/handover sequence passes a controlled
+offline regression, including one deliberately invalid source followed by a
+valid corrected draft. An approved **four-turn Gemini-only rehearsal** then
+completed the greeting, cited damage answer, context-aware pickup answer and a
+confirmed local mock ticket. It used **5 model generations, zero speech requests**;
+both policy drafts passed without correction. Its actual output is saved in
+`sample_outputs/final_demo_text_rehearsal.json` (local run ID
+`20261101T124923Z-4c8753c7`). This is a small live text check, not an accuracy or
+voice benchmark. The six saved audio examples remain historical; no new voice
+run or improved overall accuracy score is claimed.
+
+Speech-only presentation expands valid ISO dates to day/month/year and groups
+labelled eight-digit order IDs for clarity. It strips citation markers for TTS,
+preserves prices and written replies, and never guesses a missing year. Batch
+and UI use the same speech transport. Pronunciation still needs live rehearsal.
 
 ## Repository and submission
 
