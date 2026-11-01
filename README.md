@@ -200,6 +200,27 @@ are Monday-Saturday excluding supplied holidays; return windows use calendar day
 
 ## Configuration
 
+### Official model sources and first-time downloads
+
+**Model weights are not bundled in the ZIP or committed to this repository.**
+The loaders download only the selected public model from its publisher's Hugging
+Face repository, at the pinned revision below, into the ignored local model cache.
+Evaluators do not need to copy the developer's `artifacts/models/` folder.
+
+| Model | Role | Official source | Pinned files |
+| --- | --- | --- | --- |
+| BGE-M3 | Default dense retriever | [BAAI/bge-m3](https://huggingface.co/BAAI/bge-m3) | [5617a9f](https://huggingface.co/BAAI/bge-m3/tree/5617a9f61b028005a4858fdac845db406aefb181) |
+| Multilingual E5-small | Optional lower-latency comparison | [intfloat/multilingual-e5-small](https://huggingface.co/intfloat/multilingual-e5-small) | [614241f](https://huggingface.co/intfloat/multilingual-e5-small/tree/614241f622f53c4eeff9890bdc4f31cfecc418b3) |
+| Multilingual MiniLM cross-encoder | Optional experiment, disabled by default | [cross-encoder/mmarco-mMiniLMv2-L12-H384-v1](https://huggingface.co/cross-encoder/mmarco-mMiniLMv2-L12-H384-v1) | [1427fd6](https://huggingface.co/cross-encoder/mmarco-mMiniLMv2-L12-H384-v1/tree/1427fd652930e4ba29e8149678df786c240d8825) |
+
+On a new machine, install `requirements.txt`, keep `RETRIEVAL_OFFLINE=false` and
+omit `--offline` on the first live batch command. Internet access is required for
+the initial download. Later runs can reuse the cache with offline retrieval.
+Remote Python model code is disabled; BGE's checkpoint uses explicit weights-only
+loading with PyTorch >=2.6. E5 and the reranker are not downloaded unless selected.
+Gemini and Gnani use hosted APIs with the evaluator's own local keys; their model
+weights are not distributed by this project.
+
 Environment variables override `.env`. Relative paths resolve from the project
 root. The UI can also read a server-side Streamlit `[llm]` secret containing
 `provider`, `model` and `api_key`.
