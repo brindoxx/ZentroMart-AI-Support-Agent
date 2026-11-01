@@ -40,7 +40,7 @@ class LLMDialogueTests(unittest.TestCase):
             result(action="respond", topic="general", reply="Hello there! What brought you here today?"),
             result(reply="Of course. What would you like to send back?"),
             result(category="fashion", reply="When did you order the blouse?"))
-        self.assertEqual(self.turn(agent, "hello").reply, "Hello there! What brought you here today?")
+        self.assertEqual(self.turn(agent, "hello").reply, "I'm ZentroMart's AI support assistant. Hello there! What brought you here today?")
         self.assertEqual(self.turn(agent, "check a return").reply, "Of course. What would you like to send back?")
         self.assertEqual(self.turn(agent, "a blouse").reply, "When did you order the blouse?")
         self.assertEqual(agent.context.category, "fashion")
@@ -91,7 +91,7 @@ class LLMDialogueTests(unittest.TestCase):
         agent, model = self.agent(result(action="search", category="fashion", reply=""),
                                   result(category="fashion", reply="When did you place the order?"))
         reply = self.turn(agent, "What is the return window for clothes?")
-        self.assertEqual(reply.reply, "When did you place the order?")
+        self.assertEqual(reply.reply, "I'm ZentroMart's AI support assistant. When did you place the order?")
         self.assertEqual(model.plan.call_count, 2)
         model.generate.assert_not_called()
 

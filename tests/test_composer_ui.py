@@ -110,7 +110,7 @@ class ComposerUITests(unittest.TestCase):
             self.assertIn("audio", self.mounts[-1]["reply"])
             self.event("submitted", {"id": "voice-one", "text": "hello", "source": "voice"})
         self.assertEqual(model.calls, 1)
-        speech.assert_called_once_with("synthesize", "Hello! What can I help with?", "en")
+        speech.assert_called_once_with("synthesize", "I'm ZentroMart's AI support assistant. Hello! What can I help with?", "en")
         self.assertEqual(len(self.app.session_state.support.messages), 2)
 
     def test_stop_revokes_lease_without_renewing_budgets(self):
@@ -140,7 +140,7 @@ class ComposerUITests(unittest.TestCase):
         self.event("action", {"id": "voice", "action": "voice"})
         with patch.object(VoiceSession, "run", side_effect=VoiceError("timeout")):
             self.event("submitted", {"id": "voice", "text": "hi", "source": "voice"})
-        self.assertEqual(self.app.session_state.support.messages[-1]["text"], "Hello! What can I help with?")
+        self.assertEqual(self.app.session_state.support.messages[-1]["text"], "I'm ZentroMart's AI support assistant. Hello! What can I help with?")
         self.assertFalse(self.app.session_state.live_mode)
         self.assertIsNone(self.mounts[-1]["reply"])
         self.assertTrue(self.app.warning)

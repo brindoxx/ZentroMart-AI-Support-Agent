@@ -255,7 +255,8 @@ class StreamlitTests(unittest.TestCase):
                 app.chat_input[0].set_value("/policy How does Plus membership work?").run()
             self.assertFalse(app.exception)
             self.assertFalse(app.warning)
-            self.assertEqual(app.session_state.support.messages[-1]["text"], TEXT[language]["intro"])
+            from zentromart.presentation import disclose_ai
+            self.assertEqual(app.session_state.support.messages[-1]["text"], disclose_ai(TEXT[language]["intro"], language))
             self.assertEqual(transport.call_args.args[0].model, "gemini-test")
             self.assertNotIn("test-key", json.dumps(app.session_state.support.messages))
 

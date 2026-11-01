@@ -33,7 +33,7 @@ class DialogueIntegrationTests(unittest.TestCase):
         session.preferences("en", cloud=True)
         session.model._client.plan.return_value = result(action="respond", topic="general", reply="Hello! Tell me what's on your mind.")
         session.submit("hi there")
-        self.assertEqual(session.messages[-1]["text"], "Hello! Tell me what's on your mind.")
+        self.assertEqual(session.messages[-1]["text"], "I'm ZentroMart's AI support assistant. Hello! Tell me what's on your mind.")
         self.assertEqual(session.messages[-1]["path"], "dialogue")
         self.assertEqual(session.model.calls, 1)
         session.model.generate(MagicMock())

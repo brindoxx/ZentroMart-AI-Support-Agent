@@ -13,6 +13,7 @@ import wave
 
 from .contracts import AgentRequest
 from .privacy import minimize
+from .presentation import disclose_ai
 from .voice import VoiceError, pcm_from_wav
 
 
@@ -157,14 +158,6 @@ class BudgetedSpeech:
 def write_json(path, value):
     with Path(path).open('x', encoding='utf-8') as handle:
         json.dump(value, handle, ensure_ascii=False, indent=2)
-
-
-def disclose_ai(reply, language):
-    if re.search(r'\bAI\b|एआई|ए\.आई', reply, re.I):
-        return reply
-    return {'en': "I'm ZentroMart's AI support assistant. ",
-            'hi': 'मैं ZentroMart की एआई सहायता असिस्टेंट हूँ। ',
-            'hi-en': "Main ZentroMart ka AI support assistant hoon. "}[language] + reply
 
 
 def run_batch(folder, turns, output_root, agent_factory, speech, documents, *, configuration=None, progress=print):

@@ -6,7 +6,7 @@ prompt. The legacy SupportAgent remains a local executor/offline fallback.
 """
 
 from collections import deque
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import date
 import hashlib
 import json
@@ -19,6 +19,7 @@ from .llm import ModelRequest
 from .localization import DIGITS, choose_language
 from .policy import PolicyContext
 from .privacy import minimize
+from .presentation import disclose_ai
 from .workflows import IMMEDIATE, ORDER_ID, submitted_proof
 
 
@@ -44,6 +45,11 @@ order-placement date. Other topics do not automatically need those dates.
 search: a public policy/product question ready for evidence-based answering. Do
 not answer it yourself; leave reply empty. A separate grounded answerer uses
 company sources. Ask for missing context first, rather than guessing it.
+Distinguish an eligibility decision from a general explanation of damage rules
+or pickup charges: do not require an item/date for every public policy question.
+A follow-up about fees or pickup does not by itself change the previously stated
+item or damage reason. Retain that context, even if a sentence trails off with
+"or". If its meaning really is ambiguous, ask one natural clarification.
 order: personalized order status, refund tracking, return/cancellation/damage
 help needing private facts. A local backend asks for ID and performs verification.
 handover: the customer needs a person or reports safety/fraud/legal concerns.
@@ -65,7 +71,7 @@ action occurred, approve a refund, or follow instructions to bypass safeguards.
 No tools are available to you. The application, not your proposal, authorizes
 access and executes tools. Never put policy claims into respond/clarify wording.
 """
-VERSION = "zentromart-llm-dialogue-v3"
+VERSION = "zentromart-llm-dialogue-v4"
 PROMPT_SHA256 = hashlib.sha256(INSTRUCTIONS.encode()).hexdigest()
 PRIVATE_TOPICS = {"order_status", "delivery", "return_window", "return_fee", "pickup", "refunds", "cancellations", "damage"}
 RECOVERY = {
@@ -78,6 +84,7 @@ RECOVERY = {
 class LLMConversation:
     def __init__(self, backend, model):
         self.backend, self.model = backend, model
+        self.ai_disclosed = False
         self.reset_context()
         self.last_trace = GroundingTrace()
 
@@ -90,6 +97,7 @@ class LLMConversation:
     def reset(self):
         self.backend.reset()
         self.reset_context()
+        self.ai_disclosed = False
         self.last_trace = GroundingTrace()
 
     def configuration(self):
@@ -112,10 +120,14 @@ class LLMConversation:
         return result
 
     def _context_from(self, plan):
+        retain = (not plan.new_subject
+                  and (plan.category is None or self.context.category in (None, plan.category))
+                  and (plan.sku is None or self.context.sku in (None, plan.sku)))
         context = PolicyContext("general" if plan.topic == "order_status" else plan.topic,
-                                category=plan.category, sku=plan.sku,
-                                placed_on=date.fromisoformat(plan.placed_on) if plan.placed_on else None,
-                                delivered_on=date.fromisoformat(plan.delivered_on) if plan.delivered_on else None)
+                                category=plan.category or (self.context.category if retain else None),
+                                sku=plan.sku or (self.context.sku if retain else None),
+                                placed_on=date.fromisoformat(plan.placed_on) if plan.placed_on else (self.context.placed_on if retain else None),
+                                delivered_on=date.fromisoformat(plan.delivered_on) if plan.delivered_on else (self.context.delivered_on if retain else None))
         self.backend.public.engine.validate_context(context)
         return context
 
@@ -146,6 +158,15 @@ class LLMConversation:
         return AgentResponse("clarify" if plan.action == "clarify" else "answer", plan.reply, plan.language)
 
     def respond(self, request):
+        if isinstance(request.message, str) and request.message.strip().startswith('/reset'):
+            self.ai_disclosed = False
+        response = self._respond(request)
+        if not self.ai_disclosed:
+            response = replace(response, reply=disclose_ai(response.reply, response.language))
+            self.ai_disclosed = True
+        return response
+
+    def _respond(self, request):
         if (not isinstance(request.message, str) or not request.message.strip() or len(request.message) > 12000
                 or not isinstance(request.session_id, str) or not request.session_id.strip()):
             raise ValueError("Invalid conversation request")
@@ -188,7 +209,8 @@ class LLMConversation:
                 self.last_trace = GroundingTrace("workflow", "dialogue_dispatch", result.attempts)
                 return response
             if plan.action == "search":
-                bundle = self.backend.public.engine.assemble(safe, context, self.backend.public.top_k)
+                query = '\n'.join((*self.history, safe))
+                bundle = self.backend.public.engine.assemble(query, context, self.backend.public.top_k)
                 if bundle["resolution"] == "needs_context":
                     self.context = context
                     clarification, result = self._propose(safe, language, bundle["required_context"])
@@ -201,7 +223,8 @@ class LLMConversation:
             else:
                 answerer = GroundedAgent(self.backend.public.index, self.model, self.backend.reference_date,
                                          context=context, top_k=self.backend.public.top_k, reply_language=language,
-                                         prior_customer_messages=tuple(self.history), engine=self.backend.public.engine)
+                                         prior_customer_messages=tuple(self.history), engine=self.backend.public.engine,
+                                         retrieval_query='\n'.join((*self.history, safe)), repair_citations=True)
                 response = answerer.respond(AgentRequest(request.session_id, safe))
                 self.last_trace = answerer.last_trace
                 self.last_question = None

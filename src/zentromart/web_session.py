@@ -7,6 +7,18 @@ from .config import load_llm_settings
 from .contracts import AgentRequest
 from .llm import GeminiModel, ModelError
 from .privacy import minimize
+from .presentation import disclose_ai
+
+
+VALIDATION_NOTES = {
+    'citation_mismatch': 'Source references did not match the supplied passages; the draft was withheld.',
+    'uncited_answer': 'The draft lacked supporting source references and was withheld.',
+    'invalid_schema': 'The model returned an invalid response structure; the draft was withheld.',
+    'language_mismatch': 'The draft did not match the requested language and was withheld.',
+    'unexecuted_action_claim': 'The draft claimed an action that was not executed and was withheld.',
+    'citation_repaired': 'Source references passed validation after one correction attempt.',
+    'invalid_dialogue_proposal': 'The proposed next step failed validation; no action was executed.',
+}
 
 
 class PublicAccessError(RuntimeError):
@@ -79,8 +91,7 @@ class BrowserSession:
         self.agent.gateway.allow_ticket_writes = tickets
 
     def clear(self):
-        self.agent.reset()
-        self.dialogue.reset_context()
+        self.dialogue.reset()
         self.messages.clear()
 
     def submit(self, message, *, proof=False):
@@ -105,10 +116,13 @@ class BrowserSession:
                 path = "clarification"
             # Show sources separately, not machine-oriented citation brackets inside chat prose.
             displayed = response.reply
+            if not any(item['role'] == 'assistant' for item in self.messages):
+                displayed = disclose_ai(displayed, response.language)
             for identifier in response.evidence:
                 displayed = displayed.replace(f"[{identifier}]", "")
             self.messages.append({"role": "assistant", "text": displayed.strip(), "evidence": response.evidence,
-                                  "path": path, "language": response.language})
+                                  "path": path, "language": response.language,
+                                  "diagnostic": VALIDATION_NOTES.get(trace.reason)})
         finally:
             # Never retain the last executor's proof arguments in UI session state.
             self.agent.clear_tool_trace()

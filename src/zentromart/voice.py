@@ -17,6 +17,7 @@ from threading import Lock
 
 from dotenv import dotenv_values
 from .config import PROJECT_ROOT
+from .presentation import prepare_speech
 
 
 class VoiceError(RuntimeError):
@@ -138,7 +139,10 @@ class GnaniSpeech:
         if not isinstance(text, str) or not text.strip() or len(text) > 800 or language not in {"en", "hi", "hi-en"}:
             raise VoiceError("invalid_text")
         from websockets.asyncio.client import connect
-        payload = {"text": re.sub(r"\[[^\]\n]+\]", "", text), "model": "timbre-v2.5",
+        spoken = prepare_speech(text, language)
+        if not spoken or len(spoken) > 800:
+            raise VoiceError('invalid_text')
+        payload = {"text": spoken, "model": "timbre-v2.5",
                    "voice": {"en": "Pranav", "hi": "Nalini", "hi-en": "Poorvi"}[language],
                    "language": {"en": "en-IN", "hi": "hi-IN", "hi-en": "hi-en"}[language],
                    "audio_config": {"sample_rate": 24000, "num_channels": 1, "sample_width": 2,

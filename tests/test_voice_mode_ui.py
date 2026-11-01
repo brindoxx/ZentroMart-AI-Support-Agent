@@ -59,7 +59,7 @@ class VoiceModeUITests(unittest.TestCase):
         app = self.start()
         speech, model = self.turn(app)
         self.assertEqual(speech.call_count, 2)
-        self.assertEqual(speech.call_args_list[1].args, ("synthesize", "Hello! Tell me what's on your mind.", "en"))
+        self.assertEqual(speech.call_args_list[1].args, ("synthesize", "I'm ZentroMart's AI support assistant. Hello! Tell me what's on your mind.", "en"))
         model.return_value.plan.assert_called_once()
         self.assertEqual(len(app.session_state.support.messages), 2)
         self.assertEqual(app.session_state.support.messages[-1]["path"], "dialogue")
@@ -86,7 +86,7 @@ class VoiceModeUITests(unittest.TestCase):
         speech, _ = self.turn(app, tts_error=VoiceError("timeout"))
         self.assertEqual(speech.call_count, 2)
         self.assertFalse(app.session_state.voice_conversation.active)
-        self.assertEqual(app.session_state.support.messages[-1]["text"], "Hello! Tell me what's on your mind.")
+        self.assertEqual(app.session_state.support.messages[-1]["text"], "I'm ZentroMart's AI support assistant. Hello! Tell me what's on your mind.")
         self.assertFalse(app.get("audio"))
         self.assertIn("Speech playback generation failed", app.warning[0].value)
         with patch.object(VoiceSession, "run", side_effect=AssertionError("No retry")):

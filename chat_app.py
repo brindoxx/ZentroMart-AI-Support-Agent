@@ -178,6 +178,8 @@ for message in support.messages:
         st.text(message["text"])
         if message["role"] == "assistant" and message.get("path") in labels:
             st.caption(labels[message["path"]])
+        if message.get('diagnostic'):
+            st.caption(message['diagnostic'])
         if message["evidence"]:
             with st.expander(labels["sources"]):
                 for identifier in dict.fromkeys(message["evidence"]):

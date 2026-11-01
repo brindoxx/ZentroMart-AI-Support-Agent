@@ -84,7 +84,7 @@ FALLBACKS = {
     "en": {
         "no_evidence": "I can help with ZentroMart orders, returns, refunds, and deliveries. What happened, or what would you like to check?",
         "review_required": "I can't confirm which supplied policy applies here. Human review is needed; no ticket has been created.",
-        "invalid_draft": "I couldn't verify the generated reply against the supplied sources. Please rephrase or request human support; no action has been taken.",
+        "invalid_draft": "I couldn't confirm that information reliably. Could you tell me a little more about the item or what happened? You can also request human review; no action has been taken.",
         "input_budget": "This request is too long to check safely. Please send one shorter support question.",
     },
     "hi": {
@@ -143,8 +143,11 @@ class GroundedAgent:
                  *, context: PolicyContext = PolicyContext(), top_k: int = 5,
                  reply_language: str | None = None,
                  prior_customer_messages: tuple[str, ...] = (), retrieval_query: str | None = None,
-                 engine: PolicyEngine | None = None):
+                 engine: PolicyEngine | None = None, repair_citations: bool = False):
         validate_answer_options(top_k, reply_language)
+        if type(repair_citations) is not bool:
+            raise ValueError('Citation repair must be explicitly enabled or disabled')
+        self.repair_citations = repair_citations
         if (not isinstance(prior_customer_messages, tuple) or len(prior_customer_messages) > 4 or
                 any(not isinstance(text, str) or len(text) > 1500 for text in prior_customer_messages)):
             raise ValueError("Conversation memory must contain at most four bounded customer messages")
@@ -204,39 +207,53 @@ class GroundedAgent:
             instructions += "\n" + MEMORY_INSTRUCTIONS
         if len(instructions) + len(model_request_text) > 48000:
             return self._fallback("input_budget", language, retrieved)
-        try:
-            result = self.model.generate(ModelRequest(instructions, model_request_text))
-        except ModelError as exc:
-            self.last_trace = GroundingTrace("model_error", exc.code, None)
-            raise  # Evaluation must count provider failures, not disguise them as good clarifications.
-
-        def trace(outcome, reason=None):
-            return GroundingTrace(outcome, reason, result.attempts,
-                                  result.usage.get("prompt_token_count"), result.usage.get("candidates_token_count"),
-                                  result.usage.get("total_token_count"))
-
-        try:
-            draft = parse_draft(json.dumps(asdict(result.draft)))
-        except (ModelError, TypeError, ValueError):
-            fallback = self._fallback("invalid_draft", language, retrieved)
-            self.last_trace = trace("fallback", "invalid_schema")
-            return fallback
         allowed = {item["evidence_id"] for item in bundle["evidence"]}
-        inline = set(re.findall(r"\[([^\[\]\n]{1,200})\]", draft.reply))
-        cited = set(draft.evidence)
-        reason = None
-        if not cited <= allowed or inline != cited:
-            reason = "citation_mismatch"
-        elif draft.decision == "answer" and not cited:
-            reason = "uncited_answer"
-        elif self.reply_language and draft.language != self.reply_language:
-            reason = "language_mismatch"
-        elif ACTION_CONFIRMATION.search(draft.reply):
-            reason = "unexecuted_action_claim"
-        if reason:
+        results = []
+        def trace(outcome, reason=None):
+            def total(key):
+                values = [item.usage.get(key) for item in results]
+                return sum(value or 0 for value in values) if any(value is not None for value in values) else None
+            return GroundingTrace(outcome, reason, sum(item.attempts for item in results),
+                                  total('prompt_token_count'), total('candidates_token_count'), total('total_token_count'))
+        for attempt in range(2 if self.repair_citations else 1):
+            try:
+                result = self.model.generate(ModelRequest(instructions, model_request_text))
+            except ModelError as exc:
+                self.last_trace = GroundingTrace('model_error', exc.code, None)
+                raise  # Provider failures are not hidden as successful clarifications.
+            results.append(result)
+            try:
+                draft = parse_draft(json.dumps(asdict(result.draft)))
+            except (ModelError, TypeError, ValueError):
+                fallback = self._fallback('invalid_draft', language, retrieved)
+                self.last_trace = trace('fallback', 'invalid_schema')
+                return fallback
+            inline = set(re.findall(r'\[([^\[\]\n]{1,200})\]', draft.reply))
+            cited = set(draft.evidence)
+            reason = None
+            if not cited <= allowed or inline != cited:
+                reason = 'citation_mismatch'
+            elif draft.decision == 'answer' and not cited:
+                reason = 'uncited_answer'
+            elif self.reply_language and draft.language != self.reply_language:
+                reason = 'language_mismatch'
+            elif ACTION_CONFIRMATION.search(draft.reply):
+                reason = 'unexecuted_action_claim'
+            if reason is None:
+                self.last_trace = trace('accepted', 'citation_repaired' if attempt else None)
+                return AgentResponse(draft.decision, draft.reply, draft.language,
+                                     evidence=draft.evidence, retrieved_evidence=retrieved, tool_calls=())
+            feedback = ('\nTrusted validation feedback: ' + str(reason) +
+                '. Regenerate using only the same supplied passages. For an answer, cite supplied IDs inline '
+                'and list exactly those IDs in evidence. Do not invent sources or claim actions occurred.')
+            if (self.repair_citations and attempt == 0 and reason in {'citation_mismatch', 'uncited_answer'}
+                    and not ACTION_CONFIRMATION.search(draft.reply)
+                    and (not self.reply_language or draft.language == self.reply_language)
+                    and len(instructions) + len(feedback) + len(model_request_text) <= 48000):
+                # One new generation, not a relaxed guard or a provider-error retry.
+                # Reuse the public evidence; do not send rejected wording or private state.
+                instructions += feedback
+                continue
             fallback = self._fallback("invalid_draft", language, retrieved)
             self.last_trace = trace("fallback", reason)
             return fallback
-        self.last_trace = trace("accepted")
-        return AgentResponse(draft.decision, draft.reply, draft.language,
-                             evidence=draft.evidence, retrieved_evidence=retrieved, tool_calls=())
