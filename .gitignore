@@ -24,7 +24,6 @@ dist/
 
 # Runtime artifacts, conversations, and local model downloads
 artifacts/
-audio_samples/
 logs/
 .cache/
 tmp/
@@ -33,6 +32,12 @@ dataset/tools/tickets_created.csv
 
 # Local development notes; keep README, report and submission outputs trackable
 /docs/
+output/pdf/
+report/*.aux
+report/*.log
+report/*.out
+report/*.synctex.gz
+report/*.xdv
 
 # Editor and operating-system files
 .idea/

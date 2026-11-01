@@ -4,7 +4,8 @@
 `artifacts/audio_runs/20261031T151324Z-sr7lzhud`, made on 31 October 2026.
 It contains six completed audio turns across three cases, not mocked provider
 responses. The input recordings were supplied and their processing approved by
-the project owner. They are excluded from Git; this folder contains generated
+the project owner. The owner also approved publishing the original recordings;
+they are tracked separately in `audio_samples/`. This folder contains generated
 Gnani reply speech, not copies of the speaker's recordings.
 
 ## Observed run
@@ -20,7 +21,8 @@ Gnani reply speech, not copies of the speaker's recordings.
 
 These are **pipeline examples, not an accuracy benchmark**. Speech containers
 were validated as nonempty 24-kHz mono 16-bit PCM WAV. Text and source-ID linkage
-were inspected, but audio pronunciation/naturalness needs a human listening pass.
+were inspected. On 1 November the owner confirmed listening to all replies and
+reported they sounded good; this is subjective review, not a pronunciation benchmark.
 The Hindi refund input received a Hinglish reply; the final damage turns received
 Hindi replies. Exact language/style consistency is not established by this sample.
 
@@ -44,7 +46,7 @@ Source chunks are public evidence selected by the agent, not gold labels.
 
 The root README documents the exact command and `audio_cases.json` gives the
 input filenames, STT hints and conversation order. Reproduction requires the
-owner's recordings or equivalent consented synthetic inputs, provider access,
+included consented recordings or equivalent synthetic inputs, provider access,
 the separately obtained dataset and installed model dependencies. Model replies
 may vary. The examples do not complete private verification or test failure
 recovery; those paths have offline contract tests but need wider live evaluation.

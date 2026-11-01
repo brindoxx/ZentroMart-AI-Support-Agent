@@ -1,0 +1,94 @@
+# Submission checklist
+
+Author: **Mrinal Subudhi**, individual participant. `Hello_There` is used for the
+brief's team-named ZIP convention; it is not presented as a multi-person team.
+
+Repository: https://github.com/brindoxx/ZentroMart-AI-Support-Agent
+
+## Required files and current evidence
+
+| Requirement | Status |
+| --- | --- |
+| Public Git repository and setup README | Code and key-free setup are present; owner will make the repository public |
+| One-command audio-folder processing | `python run.py AUDIO_FOLDER --live`; optional manifest keeps ordered conversation turns together |
+| Text, speech and used public chunks | Real six-turn examples are in `sample_outputs/audio_demo/` |
+| Step 1 versus Step 2 evidence | `evals/results.md`; historical E5/prompt-v3 experiment, with limitations |
+| Retriever/reranker selection | `evals/retrieval-experiments.md`; BGE selected, measured cross-encoder disabled |
+| Report, at most four pages | Root `report.pdf`, with editable source in `report/report.tex` |
+| Demo, at most two minutes | Owner must record and add root `demo.mp4`; see `DEMO_SCRIPT.md` for preparation |
+| Reviewed speech samples | Owner listened and approved inclusion of input recordings and generated replies |
+
+## Next implementation / final behaviour checks
+
+These remain visible rather than being disguised as completed work:
+
+1. Guarantee first-returned-reply AI disclosure across **all live UI/voice paths**.
+   Batch first replies already have tested enforcement.
+2. Add presentation-only speech normalization for explicit date years and grouped
+   long order numbers; preserve the written facts and never voice verification proofs.
+3. Improve unclear-audio recovery and safe model-error categories/recovery without
+   silently retrying quota failures or renewing budgets. Recheck complete order
+   journeys and one real mock handover before recording the final demo.
+4. Validate a truly clean install with a separately obtained dataset. The current
+   checks validate code, local dependencies and sample outputs, not a fresh machine.
+
+No more model/framework experiments or fine-tuning are planned before release.
+The report discloses these limitations; a ZIP being structurally complete does
+not establish that every behaviour or evaluation score is correct.
+
+## Build the ZIP
+
+From the repository root, after adding the final `demo.mp4`:
+
+```powershell
+python tools/package_submission.py
+```
+
+This creates `dist/Hello_There_voiceops.zip`. An existing ZIP is not overwritten;
+use `--output` with a new name after revisions. Each archive includes a SHA-256
+file manifest and explicit delivery status. The default refuses to package a
+release without `report.pdf` and `demo.mp4`.
+
+To inspect a clearly labelled **preview** before the video is ready:
+
+```powershell
+python tools/package_submission.py --allow-incomplete
+```
+
+It creates `dist/Hello_There_voiceops_preview.zip`, reports missing deliverables
+and marks itself incomplete. **Do not submit that preview as the final ZIP.**
+The packager does not inspect the video's content or certify its duration; check
+the actual MP4 is at most 120 seconds before final packaging.
+
+## What is included
+
+- Root README, `.env.example`, dependency files and `pyproject.toml`.
+- `run.py`, the current UI entry points, theme, `src/` and regression tests.
+  The legacy UI file is retained only because some regression tests exercise it.
+- Evaluator-facing result summaries, consented `audio_samples/`, the case
+  manifest, actual generated `sample_outputs/`, `report.pdf`, LaTeX source and
+  the final `demo.mp4` when present.
+
+The report is **at the ZIP root**, not merely linked to GitHub. `report/report.tex`
+is editable source; only the PDF counts toward the four-page report limit.
+Compile it using XeLaTeX or Tectonic. No compilation tools are needed to run the agent.
+
+## What is excluded
+
+`docs/`, this project's internal report audit, demo preparation script, all
+`artifacts/`, screenshots, model downloads, vector caches, evaluation scratch
+reports, `.git/`, `.env`, secrets, environments, bytecode and the supplied dataset
+copy. The local files are not deleted; packaging uses an explicit allowlist.
+
+Obtain the course dataset separately; set `DATASET_DIR` to its extracted folder.
+Never add a key to source or a real customer recording to the examples. The
+owner's original test voice will be public with the repository by explicit consent.
+
+## Owner actions before upload
+
+1. Record/review the demo; ensure speech is audible and duration is at most two minutes.
+2. Review the report and its link; make the GitHub repository public yourself.
+3. Run the final packaging command and inspect `SUBMISSION_STATUS.json` inside it.
+4. Upload the final ZIP and use the requested public repository URL in the portal.
+
+No repository visibility changes or external submission happen automatically.

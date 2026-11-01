@@ -5,7 +5,7 @@ TEXT = {
         "title": "Support, with the right context.", "intro": "Tell me what happened, and I'll help you find the next step.",
         "settings": "Your preferences", "language": "Reply language", "cloud": "Allow Gemini for public-policy questions",
         "cloud_help": "Public questions and bounded public memory may leave this device. Order records and verification proofs are not sent. Up to 20 model generations per browser session.",
-        "tickets": "Allow local mock ticket creation", "ticket_help": "Writes an ignored local CSV, not a message to a real support team. Off by default.",
+        "tickets": "Enable demo handover tickets", "ticket_help": "Allows a local mock ticket only when a handover is requested. This does not approve refunds, contact a real team or create a ticket just by switching it on. Off by default.",
         "clear": "Clear conversation", "privacy": "Use synthetic data only. Mock verification is not real authentication. No transcript is saved to disk; displayed history lives in this browser session.",
         "status": "Order verification", "verified": "Verified for this session", "proof": "Verification needed", "locked": "Verification locked", "unverified": "Not verified",
         "proof_label": "Phone suffix (4 digits) or delivery pincode (6 digits)", "verify": "Verify securely", "prompt": "Ask a question, or enter your order ID…",

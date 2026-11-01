@@ -7,7 +7,7 @@ order lookups and Gnani speech recognition and synthesis.
 
 This is a local educational application, not a production service. Tickets are
 local mock records, not messages to a real team. The agent cannot issue refunds
-or cancel orders. See [submission readiness](report/README.md) for outstanding
+or cancel orders. See the [submission checklist](SUBMISSION.md) for outstanding
 requirements; the application is not yet a complete submission.
 
 ## Evaluator overview
@@ -20,9 +20,9 @@ requirements; the application is not yet a complete submission.
 | Voice | Gnani STT and TTS through a local WebSocket relay; sequential listening and playback |
 | Dataset validation | 9 CSVs, 21 KB documents, 1,000 synthetic orders, 1,783 order items and 244 historical logs |
 | Practice evaluation | 52 questions and 23 conversations / 96 customer turns available; completed experiments below cover questions, not a full conversation benchmark |
-| Regression checks | 321 Python tests passed, including 11 batch-audio tests; frontend composer checks and dataset validation passed on 31 October 2026 |
+| Regression checks | 325 Python tests passed on 1 November 2026, including 11 batch-audio and 4 release tests; frontend composer checks also passed |
 | Batch audio | Six live audio turns completed across three cases, including four-turn context/language switching; see sample outputs |
-| Remaining deliverables | Human speech review, final behaviour checks, report, demo and clean submission package |
+| Submission status | Owner reviewed generated speech; final behaviour checks and demo video remain; see the submission checklist |
 
 The measured experiments answer different questions: **does document grounding
 help Gemini?** and **which retriever should the app use?** Their scores must not
@@ -82,6 +82,12 @@ alone does not record audio or call a provider.
 - **Demo options:** guided synthetic orders provide tutorial credentials. Mock
   ticket creation is a separate opt-in and does not contact a human team.
 
+**Demo handover tickets are not approvals.** Enabling that setting only permits
+the local mock ticket tool to write a CSV when a handover is requested. A ticket
+is reported as created only after executor confirmation. With it off, the agent
+can recommend human review but must not claim a ticket exists. Neither setting
+authorizes a refund, cancellation or real support notification.
+
 Reply language follows the current message without a selector. Gemini chooses
 language in its existing dialogue request; private steps use local language cues,
 and numeric proofs preserve the current language. TTS uses the reply language.
@@ -97,30 +103,15 @@ multi-language reliability benchmark.
 
 ```mermaid
 flowchart TD
-    T[Typed message] --> UI[Streamlit chat]
-    M[Mic: dictate] --> RELAY[Local WebSocket relay]
-    V[Voice conversation] --> RELAY
-    RELAY --> STT[Gnani speech to text]
-    STT --> MODE{Input mode}
-    MODE -->|Dictation: edit then send| UI
-    MODE -->|Voice: submit completed turn| UI
-    UI --> SESSION[Per-tab BrowserSession]
-    SESSION --> CTRL[Shared support controller]
-    CTRL -->|Public conversation| PLAN[Gemini dialogue planner]
-    PLAN --> VALIDATE[Validate proposed next step]
-    VALIDATE --> CHAT[Conversation or clarification]
-    VALIDATE --> RAG[Public-policy retrieval and grounded Gemini answer]
-    VALIDATE --> PRIVATE[Backend order workflow]
-    CTRL -->|Verification and active private steps| PRIVATE
-    PRIVATE --> CHECK[Local verification, mock tools and calculations]
-    CHAT --> OUT[Text reply]
-    RAG --> GUARD[Citation and evidence-ID checks]
-    GUARD -->|Accepted answer or safe fallback| OUT
-    CHECK --> OUT
-    OUT --> DISPLAY[Display reply and available sources]
-    OUT -->|Voice mode only| TTS[Gnani text to speech]
-    TTS --> PLAY[Play reply]
-    PLAY -->|Resume listening until stopped| RELAY
+    INPUT[Typed message or recorded speech] -->|Audio only| STT[Gnani STT]
+    INPUT -->|Text| AGENT[Shared agent and conversation memory]
+    STT --> AGENT
+    AGENT --> PUBLIC[Gemini conversation and policy RAG]
+    AGENT --> PRIVATE[Backend verification and mock order tools]
+    PUBLIC --> CHECK[Grounding and action-safety checks]
+    PRIVATE --> CHECK
+    CHECK --> REPLY[Reply text and source references]
+    REPLY -->|Voice mode| TTS[Gnani TTS and playback]
 ```
 
 GitHub renders these Mermaid blocks as diagrams. Dictation only prepares text;
@@ -150,22 +141,13 @@ Restart the app after changing retrieval configuration.
 
 ```mermaid
 flowchart LR
-    DOCS[Public KB sections and catalog] --> META[Preserve IDs, dates and source metadata]
-    META --> LEX[BM25 lexical index]
-    META --> EMB[BGE-M3 dense encoder]
-    EMB --> VEC[Cached normalized vectors]
-    Q[Public search query] --> LEX
-    Q --> QE[BGE-M3 query embedding]
-    QE --> COS[Exact cosine search]
-    VEC --> COS
-    LEX --> RRF[Reciprocal-rank fusion]
-    COS --> RRF
-    RRF --> POLICY[Policy authority and applicability checks]
-    POLICY --> EVID[Selected evidence bundle]
-    EVID --> GEN[Gemini grounded generation]
-    GEN --> SAFE[Citation checks and safe fallback]
-    SAFE --> REPLY[Reply with source references]
-    RRF -.-> EXP[Optional top-20 cross-encoder: tested, disabled]
+    KB[Public documents and catalog] --> INDEX[Section chunks with source IDs and dates]
+    INDEX --> SEARCH[BM25 plus BGE-M3 cosine search]
+    QUERY[Customer query] --> SEARCH
+    SEARCH --> RRF[Rank fusion]
+    RRF --> EVID[Policy precedence and applicable evidence]
+    EVID --> LLM[Gemini grounded answer]
+    LLM --> OUT[Citation checks: reply or safe fallback]
 ```
 
 This is the selected public-policy path, not a diagram of private order lookup.
@@ -359,8 +341,8 @@ Detailed reports retain aggregate/per-case metrics and configuration, not raw
 prompts, replies, keys or proofs. Generated report JSON lives under ignored
 `artifacts/evals/`; tracked [answer results](evals/results.md) and
 [retrieval results](evals/retrieval-experiments.md) record the local run IDs and
-reproduction steps. The 321-test regression suite, frontend composer check and
-dataset validation passed after selecting BGE. A cached offline app-index smoke
+reproduction steps. The latest 325-test regression suite and frontend composer
+check passed on 1 November; dataset validation passed after selecting BGE. A cached offline app-index smoke
 check also returned five results. The six-file batch check below is a small live
 pipeline test, not a full live voice benchmark.
 
@@ -389,15 +371,17 @@ pipeline test, not a full live voice benchmark.
 | `src/zentromart/` | Dialogue, retrieval, policy, tools, calculations and speech |
 | `tests/` | Offline unit, integration, UI and browser-logic checks |
 | `evals/` | Evaluation instructions and limitations |
-| `report/` | Requirement audit and report/demo preparation |
+| `report/report.tex`, `report.pdf` | Editable report source and the submission PDF |
+| `SUBMISSION.md` | Evaluator-facing packaging checklist and known release gates |
 | `.env.example` | Key-free configuration template |
 | `legacy_streamlit_app.py` | Older interface retained for regression tests only |
 
 Learning notes, credentials, environments, caches and runtime artifacts are
-ignored by Git, including local input recordings in `audio_samples/`. Supplied
+ignored by Git. Consented input recordings in `audio_samples/` and generated
+replies in `sample_outputs/` are deliberately tracked for reproduction. Supplied
 dataset documents are unchanged. Generated audio examples are in
 [sample outputs](sample_outputs/README.md). Submission still needs human speech
-review, final behaviour checks, a maximum four-page report,
+final behaviour checks, a maximum four-page report,
 a maximum two-minute demo and a public repository. Exclude secrets, environments
 and a dataset copy from the submission ZIP; external dataset setup and packaging
 still require a clean-environment check.
@@ -411,7 +395,8 @@ text, generated speech, public source chunks and a safe status record.
 Run from the repository root after installing the default requirements. Place
 synthetic, consented WAV recordings in `audio_samples/`. The included
 `audio_cases.json` describes two independent questions and a four-turn conversation;
-the recordings themselves are local, not bundled or committed.
+the owner's consented recordings are included for reproduction. Do not add real
+customer calls or recordings of other people without written consent.
 
 ```powershell
 # Local WAV/manifest preflight only: no keys, downloads or provider calls
@@ -420,6 +405,11 @@ the recordings themselves are local, not bundled or committed.
 # Explicit live run: consumes Gemini quota and Gnani credits, saves outputs
 .\.venv\Scripts\python.exe -m zentromart.audio_batch audio_samples --manifest audio_cases.json --live --offline
 ```
+
+The equivalent submission entry point is
+`python run.py audio_samples --manifest audio_cases.json --live`. For a new
+evaluator folder of independent questions: `python run.py AUDIO_FOLDER --live`.
+Omit `--offline` on first use if the encoder has not yet been downloaded.
 
 `--offline` restricts embedding downloads only; STT, Gemini and TTS still use the
 network. Defaults cap the run at 24 generation attempts and 30 speech requests,
@@ -487,8 +477,9 @@ No refund or private-order outcome was invented.
 The run is preserved under
 `artifacts/audio_runs/20261031T151324Z-sr7lzhud` and copied into
 [sample outputs](sample_outputs/README.md). Nonempty WAV containers and text/source
-linkage were inspected. **Human listening review is still required**; completion
-does not prove pronunciation quality, factual accuracy or general reliability.
+linkage were inspected. The owner reviewed the generated speech and reported
+that the replies sounded good; this is subjective review, not a measured
+pronunciation score or proof of factual accuracy/general reliability.
 An obsolete capability sentence in the first answer was found during review and
 is explicitly documented with the samples rather than hidden or rewritten.
 Grounded prompt v4 corrects that instruction; no new live run or answer-quality
