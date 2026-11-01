@@ -4,14 +4,13 @@ from collections import deque
 from collections.abc import Mapping
 from uuid import uuid4
 import streamlit as st
-from zentromart.calculations import BusinessCalendar
 from zentromart.composer import composer
 from zentromart.config import LLMSettings, load_settings, load_llm_settings, load_retrieval_settings
 from zentromart.demo import DemoGateway, SCENARIOS
 from zentromart.live_voice import REGISTRY
 from zentromart.localization import DIGITS
-from zentromart.retrieval import load_search_documents, corpus_fingerprint
-from zentromart.runtime import build_public_index
+from zentromart.retrieval import corpus_fingerprint
+from zentromart.ui_resources import public_data, public_index
 from zentromart.tools import MockToolGateway
 from zentromart.ui_text import TEXT
 from zentromart.voice import VoiceError, VoiceSession
@@ -20,14 +19,6 @@ from zentromart.workflows import submitted_proof
 from zentromart.application import create_agent
 
 st.set_page_config(page_title="ZentroMart | Support", page_icon=":material/support_agent:", layout="centered")
-
-@st.cache_data(ttl=300, max_entries=2, show_spinner=False)
-def public_data(path):
-    return load_search_documents(path), BusinessCalendar.load(path)
-
-@st.cache_resource(max_entries=2, show_spinner=False)
-def public_index(path, artifacts, method, offline, corpus_sha256, embedding_model, reranker):
-    return build_public_index(path, artifacts, method, offline, embedding_model, reranker)
 
 def model_settings():
     try:
