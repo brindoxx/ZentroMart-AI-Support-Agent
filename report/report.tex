@@ -69,13 +69,13 @@ The calculation reference date remains 20 October 2026, not the computer's date.
 \end{tikzpicture}
 \end{center}
 
-\subsection{Step 1 / Establish a real LLM baseline}
+\section{Step 1 / Establish a real LLM baseline}
 The prompt-only adapter sends Gemini a support-role prompt and the current
 question without documents, tools, history or gold labels. This is distinct from
 the offline wiring baseline that always clarifies. Both live comparison arms
 used the same requested model, \texttt{gemini-3.5-flash-lite}, and 52 questions.
 
-\subsection{Step 2 / Ground answers in documents}
+\section{Step 2 / Ground answers in documents}
 Ingestion preserves section IDs, source paths, status and effective dates.
 BM25 and normalized dense cosine search feed reciprocal-rank fusion. Policy
 precedence and scenario applicability determine the evidence bundle; Gemini
