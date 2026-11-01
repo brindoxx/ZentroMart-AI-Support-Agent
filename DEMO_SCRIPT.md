@@ -3,7 +3,7 @@
 Aim for 1:45-1:55, not exactly two minutes. This is a demonstration plan, not a
 set of assistant answers to paste into the app. Let the actual agent answer.
 Use the current code, not the older saved reply with the obsolete lookup sentence.
-Author: **Mrinal Subudhi**. The final fixes passed **335 offline tests** and a
+Author: **Mrinal Subudhi**. The final fixes passed **339 offline tests** and a
 four-turn live Gemini text rehearsal: greeting, damage policy, pickup follow-up
 and confirmed mock handover. That used five generations and no speech calls.
 Rehearse once in voice mode before filming; the text check is not a voice benchmark.
@@ -11,7 +11,9 @@ Rehearse once in voice mode before filming; the text check is not a voice benchm
 ## Before recording
 
 1. Restart the app with `python -m streamlit run streamlit_app.py` to load the final
-   fixes. Let BGE finish loading and test the mic/speaker beforehand.
+   fixes. Wait for **`ZentroMart ready: public resources warmed`** in the terminal;
+   the server now preloads the selected local model before accepting conversation.
+   Test the mic/speaker beforehand.
 2. Open the app directly in Chrome/Edge at localhost. Allow microphone access.
 3. Clear the conversation; confirm the in-chat cloud-processing notice.
 4. In **Demo options**, leave guided orders off for the public-policy portion.
@@ -46,7 +48,7 @@ unannounced product release date. Show the agent's actual uncertainty/refusal;
 do not prepare a fake "I don't know" response. Choose **one ending**, not both.
 
 The six-turn run predates the final release fixes. Do not imply it measured the
-current release, or that 335 offline tests are live answer-accuracy scores.
+current release, or that 339 offline tests are live answer-accuracy scores.
 One citation failure can use one extra correction generation; a still-invalid
 draft is withheld. Provider/quota errors do not trigger that correction path.
 

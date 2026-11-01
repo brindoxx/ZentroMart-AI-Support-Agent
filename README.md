@@ -20,7 +20,7 @@ requirements; the application is not yet a complete submission.
 | Voice | Gnani STT and TTS through a local WebSocket relay; sequential listening and playback |
 | Dataset validation | 9 CSVs, 21 KB documents, 1,000 synthetic orders, 1,783 order items and 244 historical logs |
 | Practice evaluation | 52 questions and 23 conversations / 96 customer turns available; completed experiments below cover questions, not a full conversation benchmark |
-| Regression checks | 335 Python tests passed on 1 November 2026, including 11 batch-audio, 4 release and 10 final conversation/presentation tests; frontend composer checks also passed |
+| Regression checks | 339 Python tests passed on 1 November 2026, including batch audio, release, conversation/presentation and 4 startup checks; frontend composer checks also passed |
 | Batch audio | Six live audio turns completed across three cases, including four-turn context/language switching; see sample outputs |
 | Submission status | Owner reviewed generated speech; styled four-page report prepared; final behaviour checks and demo video remain |
 
@@ -65,6 +65,29 @@ the local default is `dataset`. Its supplied documentation defines the schema.
 Open `http://127.0.0.1:8501`. Restart the server after changing ASGI/WebSocket
 routes. The current relay deliberately accepts local origins only; public
 hosting needs a separate deployment/security review.
+
+### Startup preparation
+
+The ASGI startup hook prepares public KB/catalog sections, the business calendar,
+the selected retrieval index and its local query encoder before serving the app.
+A fixed public `support` search warms model loading/tokenization/inference even
+when document vectors were already cached. The UI reuses those exact bounded
+cache entries; opening a tab or sending the first message does not rebuild them.
+Only the selected encoder/reranker is loaded, not every experimental model.
+
+Wait for **`ZentroMart ready: public resources warmed`** in the terminal before
+recording the demo. Startup takes longer by design; missing model files can need
+a first-time public download unless offline mode is set. Preparation failures stop
+startup with a safe setup error, not a silent search fallback.
+
+Gemini and WebSocket libraries are pre-imported, but startup does not create
+credential-bearing clients, call Gemini/Gnani, record a microphone, create tickets
+or share private order/session state. Cloud connections and response latency
+still occur after consent when you actually ask a question or start voice.
+
+A local cached-BGE check with all provider call methods blocked prepared resources
+in about 17.2 seconds; a subsequent five-result search took 0.15 seconds and reused
+the same index. These are one-machine local timings, not end-to-end chat latency.
 
 ## Using the assistant
 
@@ -341,7 +364,7 @@ Detailed reports retain aggregate/per-case metrics and configuration, not raw
 prompts, replies, keys or proofs. Generated report JSON lives under ignored
 `artifacts/evals/`; tracked [answer results](evals/results.md) and
 [retrieval results](evals/retrieval-experiments.md) record the local run IDs and
-reproduction steps. The latest 335-test regression suite and frontend composer
+reproduction steps. The latest 339-test regression suite and frontend composer
 check passed on 1 November; dataset validation passed after selecting BGE. A cached offline app-index smoke
 check also returned five results. The six-file batch check below is a small live
 pipeline test, not a full live voice benchmark.

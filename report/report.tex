@@ -87,7 +87,10 @@ safe fallback. They do not establish semantic entailment or perfect grounding.
 \section{Step 3 / Keep one conversation and control actions}
 The shared \texttt{create\_agent} factory is used by the UI, CLI, evaluation and
 batch audio runner. Each conversation owns its memory, verification and tool
-state. Public retrieval resources are cached and CPU access is serialized.
+state. ASGI startup preloads public documents, the calendar and the selected
+query encoder with a fixed public warm-up search. The UI reuses bounded caches;
+no provider request, credential-bearing client or private state is warmed.
+CPU encoder access is serialized.
 Gemini proposes structured actions: answer, clarify, search or enter a supported
 workflow. The application validates the proposal before dispatching it.
 
@@ -199,8 +202,8 @@ Six real recordings across three cases completed STT, agent processing and TTS:
 turns}. The four-turn case retained item context and changed from English to
 Hindi before requesting an order ID. The owner listened to the generated replies
 and reported satisfactory speech. This is a small subjective check, not WER or a
-general voice-reliability score. The offline suite passed \textbf{335 tests},
-including 11 batch-audio, four release and ten final conversation/presentation checks.
+general voice-reliability score. The offline suite passed \textbf{339 tests},
+including 11 batch-audio, four release, ten conversation/presentation and four startup checks.
 
 An approved four-turn text rehearsal of the revised demo also completed:
 AI-disclosed greeting, cited damage-policy answer, context-aware pickup answer

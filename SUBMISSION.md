@@ -30,7 +30,10 @@ Implemented and checked offline:
 4. Speech-only explicit ISO date formatting and labelled order-ID grouping,
    preserving written facts/prices and not guessing missing years.
 
-The 335-test suite passed. An approved four-turn live Gemini text rehearsal also
+The 339-test suite passed, including startup cache reuse/no-provider-call checks.
+The server now warms shared public resources and the selected encoder before
+readiness, without initializing private conversations or making provider requests.
+An approved four-turn live Gemini text rehearsal also
 passed with five generations, no citation correction needed and zero Gnani calls;
 the actual output is in `sample_outputs/final_demo_text_rehearsal.json`. This does
 not replace a voice rehearsal or constitute a new accuracy benchmark.
