@@ -14,7 +14,7 @@ Repository: https://github.com/brindoxx/ZentroMart-AI-Support-Agent
 | Text, speech and used public chunks | Real six-turn examples are in `sample_outputs/audio_demo/` |
 | Step 1 versus Step 2 evidence | `evals/results.md`; historical E5/prompt-v3 experiment, with limitations |
 | Retriever/reranker selection | `evals/retrieval-experiments.md`; BGE selected, measured cross-encoder disabled |
-| Report, at most four pages | Root `report.pdf`, with editable source in `report/report.tex` |
+| Report, at most four pages | Root `report.pdf`: four rendered/visually checked pages, author and clickable repository link verified; editable source in `report/report.tex` |
 | Demo, at most two minutes | Owner must record and add root `demo.mp4`; see `DEMO_SCRIPT.md` for preparation |
 | Reviewed speech samples | Owner listened and approved inclusion of input recordings and generated replies |
 
@@ -72,6 +72,9 @@ the actual MP4 is at most 120 seconds before final packaging.
 The report is **at the ZIP root**, not merely linked to GitHub. `report/report.tex`
 is editable source; only the PDF counts toward the four-page report limit.
 Compile it using XeLaTeX or Tectonic. No compilation tools are needed to run the agent.
+
+For example, from the repository root: `tectonic --outdir . report/report.tex`.
+This rebuilds `report.pdf`; check the page count and layout after editing.
 
 ## What is excluded
 

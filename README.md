@@ -22,7 +22,7 @@ requirements; the application is not yet a complete submission.
 | Practice evaluation | 52 questions and 23 conversations / 96 customer turns available; completed experiments below cover questions, not a full conversation benchmark |
 | Regression checks | 325 Python tests passed on 1 November 2026, including 11 batch-audio and 4 release tests; frontend composer checks also passed |
 | Batch audio | Six live audio turns completed across three cases, including four-turn context/language switching; see sample outputs |
-| Submission status | Owner reviewed generated speech; final behaviour checks and demo video remain; see the submission checklist |
+| Submission status | Owner reviewed generated speech; styled four-page report prepared; final behaviour checks and demo video remain |
 
 The measured experiments answer different questions: **does document grounding
 help Gemini?** and **which retriever should the app use?** Their scores must not
@@ -380,9 +380,10 @@ Learning notes, credentials, environments, caches and runtime artifacts are
 ignored by Git. Consented input recordings in `audio_samples/` and generated
 replies in `sample_outputs/` are deliberately tracked for reproduction. Supplied
 dataset documents are unchanged. Generated audio examples are in
-[sample outputs](sample_outputs/README.md). Submission still needs human speech
-final behaviour checks, a maximum four-page report,
-a maximum two-minute demo and a public repository. Exclude secrets, environments
+[sample outputs](sample_outputs/README.md). The four-page `report.pdf` is rendered
+and visually checked; its editable source is `report/report.tex`. Submission still
+needs final behaviour checks, a maximum two-minute demo and a public repository.
+The report PDF and its source are included by the release packager. Exclude secrets, environments
 and a dataset copy from the submission ZIP; external dataset setup and packaging
 still require a clean-environment check.
 

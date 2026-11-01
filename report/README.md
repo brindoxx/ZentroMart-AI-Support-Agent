@@ -26,8 +26,8 @@ in one reproducible, evaluated pipeline. Unit-test success does not close these 
 | --- | --- |
 | Public repository with setup and key-free configuration | README/dependencies/template exist; publication is user-controlled |
 | One command accepting an audio folder | Implemented and live checked on six recordings: python -m zentromart.audio_batch INPUT_FOLDER --manifest audio_cases.json --live --offline; see root README for preflight/setup |
-| Saved reply text, speech and source chunks per input | Six real completed turns saved in sample_outputs/audio_demo; six Gemini and twelve Gnani attempts, no retries; human speech review remains |
-| Four-page maximum report | Not produced; this file is preparation only |
+| Saved reply text, speech and source chunks per input | Six real completed turns saved in sample_outputs/audio_demo; six Gemini and twelve Gnani attempts, no retries; owner approved speech and publishing original recordings on 1 November |
+| Four-page maximum report | Root report.pdf is compiled from report/report.tex, exactly four pages; all pages visually inspected and the author/repository link checked |
 | Two-minute maximum demo | Not produced |
 | Sample outputs and reproducible ZIP | Real audio outputs assembled in sample_outputs/; ZIP and clean external-dataset setup validation remain |
 
